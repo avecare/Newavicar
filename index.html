@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق رعاية الطيور AviCare</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .header-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .description {
+            color: #555;
+            font-size: 18px;
+            line-height: 1.8;
+            margin: 20px auto;
+            max-width: 90%;
+            text-align: justify;
+        }
+        .show-more {
+            color: #007BFF;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .show-more:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+        .app-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 15px;
+            margin: 20px auto;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        .image-scroll-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            gap: 15px;
+            max-width: 90%;
+            margin: 20px auto;
+            padding: 10px 0;
+        }
+        .image-scroll-container img {
+            width: 250px;
+            height: auto;
+            object-fit: cover;
+            border-radius: 10px;
+            scroll-snap-align: start;
+            transition: transform 0.3s ease;
+        }
+        .image-scroll-container img:hover {
+            transform: scale(1.05);
+        }
+        .button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            margin-top: 40px;
+            color: #777;
+            font-size: 14px;
+            text-align: center;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #f1f1f1;
+        }
+        .footer:hover {
+            background-color: #e6e6e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>تطبيق AviCare - رعاية الطيور</h1>
+    <img src="https://c.top4top.io/p_3298t7to70.png" alt="صورة كبيرة للتطبيق" class="header-image">
+
+    <img src="https://d.top4top.io/p_3298xku9m0.png" alt="أيقونة التطبيق" class="app-icon">
+    
+    <div class="description" id="description">
+        تطبيق AviCare - رعاية الطيور هو الحل الشامل لمربي الدواجن، يجمع بين الخبرة والابتكار لتلبية جميع احتياجاتك في العناية بدواجنك.  
+        يحتوي التطبيق على أقسام متكاملة تشمل:  
+        <span id="more-text" style="display: none;">
+            - علاج جميع الأمراض: وصفات طبيعية وفعّالة للتعامل مع مختلف الأمراض التي تصيب الدواجن.  
+            - رفع المناعة: نصائح وخطط لتحسين مناعة الدواجن بشكل طبيعي وآمن.  
+            - خلطات مهمة: وصفات غذائية مبتكرة لتعزيز صحة وإنتاجية الطيور.  
+            - قسم التشريح: دليل شامل لفهم تركيب جسم الطائر وتشخيص الأمراض بسهولة.  
+            - قسم التتبيلة: خلطات مخصصة لتحسين صحة الطيور.  
+            - قسم استقبال الصوص: نصائح وإرشادات للعناية بالصوص في أيامه الأولى.  
+            - قسم النصائح: مجموعة غنية من الإرشادات لزيادة الإنتاج وتحسين صحة الدواجن.  
+            - إدارة الفقاسة: أدوات مبتكرة لإدارة وتتبع عملية التفريخ بكفاءة.  
+        </span>
+    </div>
+    <span class="show-more" id="show-more">إظهار المزيد</span>
+
+    <!-- Horizontal Scrollable Image Section -->
+    <div class="image-scroll-container" id="image-scroll-container">
+        <img src="https://b.top4top.io/p_3298tjygz0.jpg" alt="صورة 1">
+        <img src="https://c.top4top.io/p_32980hoqh1.jpg" alt="صورة 2">
+        <img src="https://j.top4top.io/p_32983ra9t0.jpg" alt="صورة 3">
+        <img src="https://k.top4top.io/p_3298lpq841.jpg" alt="صورة 4">
+        <img src="https://l.top4top.io/p_3298fld912.jpg" alt="صورة 5">
+        <img src="https://c.top4top.io/p_3298ivp2z0.jpg" alt="صورة 6">
+    </div>
+
+    <!-- Video Section -->
+    <div style="margin: 30px auto; max-width: 90%; text-align: center;">
+        <h2> شرح كامل لطريقة تحميل التطبيق</h2>
+        <video controls width="100%" style="border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+            <source src="https://j.top4top.io/m_3298s3bwj0.mp4" type="video/mp4">
+            متصفحك لا يدعم تشغيل الفيديو.
+        </video>
+    </div>
+
+    <a href="https://www.upload-apk.com/ar/zykUCDiKSbwMtCx" class="button">تحميل التطبيق الآن</a>
+
+    <div class="footer">
+        © جميع الحقوق محفوظة 2025 | AviCare - رعاية الطيور
+    </div>
+
+    <script>
+        const showMoreButton = document.getElementById('show-more');
+        const moreText = document.getElementById('more-text');
+
+        showMoreButton.addEventListener('click', () => {
+            if (moreText.style.display === 'none') {
+                moreText.style.display = 'inline';
+                showMoreButton.textContent = 'إظهار أقل';
+            } else {
+                moreText.style.display = 'none';
+                showMoreButton.textContent = 'إظهار المزيد';
+            }
+        });
+
+        // Enable drag scrolling for images
+        const scrollContainer = document.getElementById('image-scroll-container');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        scrollContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - scrollContainer.offsetLeft;
+            scrollLeft = scrollContainer.scrollLeft;
+        });
+
+        scrollContainer.addEventListener('mouseleave', () => isDown = false);
+        scrollContainer.addEventListener('mouseup', () => isDown = false);
+
+        scrollContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - scrollContainer.offsetLeft;
+            const walk = (x - startX) * 2;
+            scrollContainer.scrollLeft = scrollLeft - walk;
+        });
+    </script>
+</body>
+</html>
