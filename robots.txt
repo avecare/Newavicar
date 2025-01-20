@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://avecare.github.io/Newavicar/sitemap.xml
