@@ -5,50 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تطبيق رعاية الطيور AviCare</title>
     <style>
+        /* التصميم العام */
         body {
             text-align: center;
-            font-family: Arial, sans-serif;
+            font-family: 'Tajawal', sans-serif;
             direction: rtl;
-            background-color: #f4f4f4;
+            background-color: #f9f9f9;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            color: #333;
         }
         h1, h2 {
-            color: #333;
+            color: #2c3e50;
             margin-bottom: 20px;
         }
         .header-image {
             width: 100%;
-            max-height: 300px;
+            max-height: 400px;
             object-fit: cover;
             border-radius: 10px;
             margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         .description {
             color: #555;
             font-size: 18px;
             line-height: 1.8;
             margin: 20px auto;
-            max-width: 90%;
+            max-width: 800px;
             text-align: justify;
+            padding: 0 20px;
         }
         .show-more {
-            color: #007BFF;
+            color: #3498db;
             cursor: pointer;
             font-size: 16px;
             display: inline-block;
             margin-top: 10px;
+            transition: color 0.3s ease;
         }
         .show-more:hover {
             text-decoration: underline;
-            color: #0056b3;
+            color: #2980b9;
         }
         .app-icon {
-            width: 100px;
-            height: 100px;
-            border-radius: 15px;
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
             margin: 20px auto;
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .app-icon:hover {
+            transform: scale(1.1);
         }
         .image-scroll-container {
             display: flex;
@@ -60,7 +69,7 @@
             padding: 10px 0;
         }
         .image-scroll-container img {
-            width: 250px;
+            width: 300px;
             height: auto;
             object-fit: cover;
             border-radius: 10px;
@@ -76,24 +85,114 @@
             padding: 15px 30px;
             font-size: 18px;
             color: #fff;
-            background-color: #007BFF;
+            background-color: #3498db;
             text-decoration: none;
             border-radius: 5px;
+            transition: background-color 0.3s ease;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #2980b9;
         }
         .footer {
             margin-top: 40px;
             color: #777;
             font-size: 14px;
             text-align: center;
-            padding: 10px;
+            padding: 20px;
             border-top: 1px solid #ddd;
             background-color: #f1f1f1;
         }
         .footer:hover {
             background-color: #e6e6e6;
+        }
+
+        /* الإعلانات المدمجة */
+        .ad {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .ad:hover {
+            transform: translateY(-5px);
+        }
+        .ad img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+        .ad h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .ad p {
+            color: #555;
+            font-size: 16px;
+        }
+
+        /* زر واتساب مع شريط LED متعدد الألوان يعمل بشكل مستمر */
+        .whatsapp-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #25D366;
+            text-decoration: none;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .whatsapp-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                #ff0000,
+                #ff7f00,
+                #ffff00,
+                #00ff00,
+                #0000ff,
+                #4b0082,
+                #9400d3,
+                #ff0000
+            );
+            animation: led-rotate 3s linear infinite;
+            z-index: -1;
+        }
+        .whatsapp-button::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            background-color: #25D366;
+            border-radius: 50px;
+            z-index: -1;
+        }
+        @keyframes led-rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        .whatsapp-button:hover {
+            background-color: #128C7E;
+            transform: translateY(-3px);
+        }
+        .whatsapp-button:active {
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -119,6 +218,13 @@
     </div>
     <span class="show-more" id="show-more">إظهار المزيد</span>
 
+    <!-- إعلان مدمج -->
+    <div class="ad">
+        <h3>إعلانك يراه المئات من المستخدمين</h3>
+        <img src="https://g.top4top.io/p_3307rpsh90.png" alt="إعلان مدمج">
+        <p>للاعلان اضغط على زر تواصل على الواتس اب بالاسفل.</p>
+    </div>
+
     <!-- Horizontal Scrollable Image Section -->
     <div class="image-scroll-container" id="image-scroll-container">
         <img src="https://b.top4top.io/p_3298tjygz0.jpg" alt="صورة 1">
@@ -127,6 +233,13 @@
         <img src="https://k.top4top.io/p_3298lpq841.jpg" alt="صورة 4">
         <img src="https://l.top4top.io/p_3298fld912.jpg" alt="صورة 5">
         <img src="https://c.top4top.io/p_3298ivp2z0.jpg" alt="صورة 6">
+    </div>
+
+    <!-- إعلان مدمج -->
+    <div class="ad">
+        <h3>إعلانك يراه المئات من المستخدمين</h3>
+        <img src="https://g.top4top.io/p_3307rpsh90.png" alt="إعلان مدمج">
+        <p>للاعلان اضعط على زر تواصل على الواتس اب بالاسفل.</p>
     </div>
 
     <!-- Video Section -->
@@ -139,6 +252,9 @@
     </div>
 
     <a href="https://apkpure.com/p/avicare.cbtgcshy" class="button">تحميل التطبيق الآن</a>
+
+    <!-- زر واتساب مع شريط LED متعدد الألوان يعمل بشكل مستمر -->
+    <a href="https://wa.me/962782198029" class="whatsapp-button">تواصل معنا على واتساب</a>
 
     <div class="footer">
         © جميع الحقوق محفوظة 2025 | AviCare - رعاية الطيور
@@ -156,29 +272,6 @@
                 moreText.style.display = 'none';
                 showMoreButton.textContent = 'إظهار المزيد';
             }
-        });
-
-        // Enable drag scrolling for images
-        const scrollContainer = document.getElementById('image-scroll-container');
-        let isDown = false;
-        let startX;
-        let scrollLeft;
-
-        scrollContainer.addEventListener('mousedown', (e) => {
-            isDown = true;
-            startX = e.pageX - scrollContainer.offsetLeft;
-            scrollLeft = scrollContainer.scrollLeft;
-        });
-
-        scrollContainer.addEventListener('mouseleave', () => isDown = false);
-        scrollContainer.addEventListener('mouseup', () => isDown = false);
-
-        scrollContainer.addEventListener('mousemove', (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - scrollContainer.offsetLeft;
-            const walk = (x - startX) * 2;
-            scrollContainer.scrollLeft = scrollLeft - walk;
         });
     </script>
 </body>
