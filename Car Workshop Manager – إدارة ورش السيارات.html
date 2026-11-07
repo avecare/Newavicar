@@ -1,0 +1,2147 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Car Workshop Manager – إدارة ورش السيارات</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&display=swap">
+<style>
+/* Layout concept: RTL shop-floor console. Sidebar on the right (desktop) / bottom tabs (phone),
+   job-card lists, one dominant profit figure per screen. Hazard-stripe detail marks the brand. */
+:root{
+  --bg:#0c0d0f; --bg2:#121316; --sf:#17191c; --sf2:#1e2125; --sf3:#272b30;
+  --ln:#2b2f35; --ln2:#3d424a;
+  --ink:#eeeae2; --ink2:#b9b5ac; --ink3:#8d8981;
+  --ac:#ff7a1a; --ac-h:#ff9040; --ac-ink:#1b0f04; --ac2:#ffc531;
+  --good:#3fcf8e; --bad:#ff6363; --warn:#ffc531; --info:#7d9fdc;
+  --c-rev:#e86a12; --c-exp:#6c90d3; --c-net:#eeeae2;
+  --st-recv:#8aa2c8; --st-work:#ff7a1a; --st-parts:#ffc531; --st-ready:#3fcf8e; --st-done:#8d8981;
+  --r:12px; --r-s:8px;
+  --f-disp:'Reem Kufi','Cairo','Segoe UI',Tahoma,sans-serif;
+  --f-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,'Noto Sans Arabic',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Consolas,'Courier New',monospace;
+  --gut-l:max(16px,env(safe-area-inset-left,0px)); --gut-r:max(16px,env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 var(--f-body);min-height:100%}
+body.lock{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4,p{margin:0}
+a{color:var(--ac)}
+:focus-visible{outline:2px solid var(--ac2);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+.cu{color:var(--ink3);font-size:.78em;font-weight:500;margin-inline-start:.25em}
+.muted{color:var(--ink3)} .ink2{color:var(--ink2)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.hide{display:none!important}
+.grow{flex:1;min-width:0}
+.ic{flex:none;display:inline-block;vertical-align:middle}
+
+/* shell */
+#app{display:flex;min-height:100vh;min-height:100dvh}
+.side{display:none;flex:none;width:248px;background:var(--bg2);border-inline-end:1px solid var(--ln);position:sticky;top:0;height:100vh;height:100dvh;flex-direction:column}
+.hazard{height:8px;background:repeating-linear-gradient(135deg,var(--ac) 0 10px,#0c0d0f 10px 20px)}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 18px 18px}
+.brand-mark{width:42px;height:42px;border-radius:10px;background:var(--ac);color:var(--ac-ink);display:grid;place-items:center;flex:none}
+.brand b{display:block;font:700 18px/1.2 var(--f-disp);letter-spacing:.01em}
+.brand small{display:block;color:var(--ink3);font:500 11px/1.4 var(--f-mono);letter-spacing:.04em;direction:ltr;text-align:right}
+.nav{display:flex;flex-direction:column;gap:4px;padding:8px 12px}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:var(--r-s);color:var(--ink2);text-decoration:none;font-weight:500}
+.nav a:hover{background:var(--sf2);color:var(--ink)}
+.nav a[aria-current=page]{background:var(--sf3);color:var(--ink);box-shadow:inset -3px 0 0 var(--ac)}
+.side-foot{margin-top:auto;padding:14px;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:10px}
+.side-foot .small{color:var(--ink3);font-size:12px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--ln)}
+.top .hazard{height:4px}
+.top-in{display:flex;align-items:center;gap:10px;padding:10px var(--gut-r) 10px var(--gut-l);max-width:1240px;margin:0 auto;width:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+.top-brand{display:flex;align-items:center;gap:10px;font:700 16px var(--f-disp)}
+.top-brand .brand-mark{width:34px;height:34px;border-radius:8px}
+.search{position:relative;flex:1;min-width:0}
+.search input{width:100%;height:44px;border-radius:999px;border:1px solid var(--ln2);background:var(--sf);padding:0 44px 0 16px;outline:none}
+.search input:focus{border-color:var(--ac)}
+.search .ic{position:absolute;inset-inline-start:14px;top:12px;color:var(--ink3);pointer-events:none}
+.sres{position:absolute;inset-inline:0;top:50px;background:var(--sf2);border:1px solid var(--ln2);border-radius:var(--r);max-height:60vh;overflow:auto;z-index:40;box-shadow:0 18px 40px rgba(0,0,0,.5);padding:6px}
+.sres h5{margin:8px 10px 4px;font-size:12px;color:var(--ink3);font-weight:600}
+.sres button{display:flex;width:100%;text-align:start;align-items:center;gap:10px;padding:9px 10px;border:0;background:none;border-radius:var(--r-s);cursor:pointer}
+.sres button:hover,.sres button:focus-visible{background:var(--sf3)}
+.content{width:100%;max-width:1240px;margin:0 auto;padding:20px var(--gut-r) 120px var(--gut-l);display:flex;flex-direction:column;gap:20px}
+.tabbar{position:fixed;inset:auto 0 0 0;z-index:25;background:var(--bg2);border-top:1px solid var(--ln);padding:6px var(--gut-r) calc(6px + env(safe-area-inset-bottom,0px)) var(--gut-l)}
+.tabbar-in{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;max-width:560px;margin:0 auto;align-items:center}
+.tabbar a,.tabbar button.tab-add{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;color:var(--ink3);text-decoration:none;font-size:11px;font-weight:500;border-radius:10px;background:none;border:0;cursor:pointer}
+.tabbar a[aria-current=page]{color:var(--ac)}
+.tabbar .tab-add .plus{width:50px;height:50px;border-radius:50%;background:var(--ac);color:var(--ac-ink);display:grid;place-items:center;margin-top:-22px;box-shadow:0 6px 18px rgba(255,122,26,.35),0 0 0 5px var(--bg2)}
+.tabbar .tab-add span{margin-top:-2px}
+@media (min-width:960px){
+  .side{display:flex}.tabbar,.top-brand{display:none}
+  .content{padding-bottom:60px}
+}
+
+/* type */
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ph h1{font:700 26px/1.25 var(--f-disp);letter-spacing:.01em;text-wrap:balance}
+.ph p{color:var(--ink3);font-size:14px}
+h2.sec{font:700 18px/1.3 var(--f-disp);display:flex;align-items:center;gap:8px}
+h2.sec small{font:500 12px var(--f-body);color:var(--ink3)}
+.label{font-size:12px;color:var(--ink3);font-weight:500;letter-spacing:.02em}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--r-s);border:1px solid var(--ln2);background:var(--sf2);color:var(--ink);font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--sf3);border-color:#4a5058}
+.btn.primary{background:var(--ac);border-color:var(--ac);color:var(--ac-ink)}
+.btn.primary:hover{background:var(--ac-h);border-color:var(--ac-h)}
+.btn.good{background:#17402f;border-color:#235c44;color:#b8f2d6}
+.btn.danger{background:transparent;border-color:#5b2a2d;color:#ff9a9a}
+.btn.danger:hover{background:#2a1618}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.btn.xl{min-height:64px;padding:0 22px;font-size:17px;border-radius:var(--r);flex:1;min-width:150px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:var(--r-s);border:1px solid transparent;background:none;color:var(--ink2);cursor:pointer}
+.icon-btn:hover{background:var(--sf3);color:var(--ink)}
+.icon-btn.del:hover{color:var(--bad)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.sb{justify-content:space-between}
+
+/* cards & tiles */
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r);padding:18px}
+.card.flat{padding:0;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.gauto{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.g3{grid-template-columns:minmax(0,1fr)}.btn.xl{min-height:56px;font-size:16px}}
+.tile{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile .v{font:600 22px/1.2 var(--f-mono);direction:ltr;text-align:right;overflow-wrap:anywhere}
+.tile .v .cu{font:500 12px var(--f-body)}
+.tile .s{font-size:12px;color:var(--ink3)}
+.hero{grid-column:span 2;background:linear-gradient(160deg,#241a10 0,var(--sf) 62%);border-color:#4a3320}
+.hero .v{font-size:34px}
+.hero .label{color:#d9b48f}
+@media (max-width:520px){.hero{grid-column:span 2}.tile .v{font-size:19px}.hero .v{font-size:28px}}
+
+/* chips pills */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--ln2);background:var(--sf);color:var(--ink2);font-weight:500;font-size:13px;cursor:pointer}
+.chip:hover{border-color:#555b64;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ac);border-color:var(--ac);color:var(--ac-ink);font-weight:700}
+.chip .n{font:500 11px var(--f-mono);opacity:.8}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--sf3);color:var(--ink);white-space:nowrap}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc,var(--ink3))}
+.st-received{--pc:var(--st-recv)}.st-working{--pc:var(--st-work)}.st-parts{--pc:var(--st-parts)}.st-ready{--pc:var(--st-ready)}.st-delivered{--pc:var(--st-done)}
+.plate{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:2px 12px;border-radius:6px;background:#efe9d7;color:#14110a;border:2px solid #14110a;outline:1px solid #efe9d7;font:600 15px/1.5 var(--f-mono);letter-spacing:.06em;direction:ltr;white-space:nowrap}
+.plate.none{background:transparent;color:var(--ink3);border-style:dashed;border-color:var(--ln2);outline:0;font:500 12px var(--f-body);letter-spacing:0}
+.plate.xl{font-size:22px;padding:4px 18px;min-width:130px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.35);vertical-align:-1px}
+
+/* job card */
+.job{display:flex;flex-direction:column;gap:12px;background:var(--sf);border:1px solid var(--ln);border-radius:var(--r);padding:14px 16px;cursor:pointer;text-align:start;width:100%;min-width:0;transition:border-color .15s,background .15s}
+.job:hover{border-color:#555b64;background:var(--sf2)}
+.job-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.job-t{font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.job-s{color:var(--ink3);font-size:13px;overflow-wrap:anywhere}
+.job-f{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px dashed var(--ln2);padding-top:10px}
+.job-f div{min-width:0}
+.job-f .label{display:block}
+.job-f .num{font-size:14px;font-weight:600}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--ln);border-radius:var(--r);background:var(--sf)}
+.tw.bare{border:0;border-radius:0;background:none}
+table.t{border-collapse:collapse;width:100%;min-width:560px}
+table.t th{background:var(--sf2);color:var(--ink2);font-weight:600;font-size:12.5px;text-align:start;padding:10px 12px;white-space:nowrap;border-bottom:1px solid var(--ln2)}
+table.t td{padding:10px 12px;border-bottom:1px solid var(--ln);font-size:14px;vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t td.n,table.t th.n{text-align:left;direction:ltr;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t th.n{font-family:var(--f-body);text-align:left}
+table.t tfoot td{background:var(--sf2);font-weight:700;border-top:2px solid var(--ln2)}
+table.t tbody tr.clk{cursor:pointer}
+table.t tbody tr.clk:hover td{background:var(--sf2)}
+table.t .acts{white-space:nowrap;text-align:end;width:1%}
+.empty{padding:34px 18px;text-align:center;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty b{color:var(--ink2);font-size:16px}
+
+/* forms */
+.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.fg .full{grid-column:1/-1}
+@media (max-width:520px){.fg{grid-template-columns:minmax(0,1fr)}}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.f>label,.f>.lb{font-size:13px;color:var(--ink2);font-weight:500}
+.f>label i{color:var(--ac);font-style:normal}
+.in,.f input:not([type=checkbox]):not([type=file]):not([type=radio]),.f select,.f textarea{width:100%;min-height:46px;border-radius:var(--r-s);border:1px solid var(--ln2);background:var(--bg2);padding:8px 12px;outline:none;min-width:0}
+.f textarea{min-height:88px;resize:vertical}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(255,122,26,.18)}
+.f input.num{text-align:left}
+.f .hint{font-size:12px;color:var(--ink3)}
+.f select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),linear-gradient(135deg,var(--ink3) 50%,transparent 50%);background-position:calc(0% + 18px) 52%,calc(0% + 13px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-inline-start:34px}
+.fs{border:1px solid var(--ln);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--sf)}
+.fs>legend,.fs-t{font:700 14px var(--f-disp);color:var(--ac2);padding:0 6px}
+fieldset{margin:0;min-width:0}
+.sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.sw input{width:20px;height:20px;accent-color:var(--ac)}
+.live{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg2);border:1px dashed var(--ln2);border-radius:var(--r-s);padding:10px 14px;font-weight:600}
+.live .num{font-size:18px;color:var(--ac2)}
+.sugg{display:flex;flex-direction:column;border:1px solid var(--ln2);border-radius:var(--r-s);overflow:hidden;background:var(--sf2)}
+.sugg button{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:0;background:none;text-align:start;cursor:pointer;border-bottom:1px solid var(--ln)}
+.sugg button:last-child{border-bottom:0}
+.sugg button:hover{background:var(--sf3)}
+.picked{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#15291f;border:1px solid #235c44;border-radius:var(--r-s);padding:8px 12px;font-weight:600}
+
+/* modal */
+.ov{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.66);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.sheet{background:var(--sf);border:1px solid var(--ln2);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:94vh;max-height:94dvh;display:flex;flex-direction:column;animation:rise .2s;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.wide{max-width:820px}
+.sh-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--ln)}
+.sh-h h3{font:700 18px var(--f-disp)}
+.sh-b{overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch}
+.sh-f{position:sticky;bottom:-16px;margin:0 -18px -16px;padding:12px 18px;background:var(--sf);border-top:1px solid var(--ln);display:flex;gap:10px;flex-wrap:wrap}
+.sh-f .btn{flex:1;min-width:130px}
+@media (min-width:700px){.ov{align-items:center;padding:20px}.sheet{border-radius:18px;max-height:90vh}}
+.qa{display:grid;gap:10px}
+.qa .btn{justify-content:flex-start;min-height:64px;font-size:17px;gap:14px}
+#toasts{position:fixed;inset:auto 0 calc(92px + env(safe-area-inset-bottom,0px)) 0;z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px}
+@media (min-width:960px){#toasts{bottom:24px}}
+.toast{background:var(--sf3);border:1px solid var(--ln2);border-inline-start:4px solid var(--good);padding:11px 16px;border-radius:var(--r-s);box-shadow:0 10px 30px rgba(0,0,0,.5);font-weight:500;animation:rise .2s;max-width:520px}
+.toast.err{border-inline-start-color:var(--bad)}
+.banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#2a2112;border:1px solid #5d4519;border-radius:var(--r);padding:12px 16px}
+.banner.bad{background:#2a1618;border-color:#5b2a2d}
+.banner .grow{min-width:200px}
+
+/* car page */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.step{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:var(--r-s);border:1px solid var(--ln);background:var(--sf);cursor:pointer;font-size:12px;font-weight:600;color:var(--ink3);text-align:center;line-height:1.3}
+.step i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ln2);display:block}
+.step.done{color:var(--ink2)} .step.done i{background:var(--ln2)}
+.step.cur{border-color:var(--pc);color:var(--ink);background:var(--sf2)} .step.cur i{background:var(--pc);border-color:var(--pc);box-shadow:0 0 0 4px color-mix(in srgb,var(--pc) 25%,transparent)}
+@media (max-width:520px){.step{font-size:11px;padding:8px 2px}}
+.pnl{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:12px}
+@media (max-width:900px){.pnl{grid-template-columns:repeat(2,minmax(0,1fr))}.pnl .big{grid-column:1/-1}}
+.pnl .big .v{font:700 36px/1.15 var(--f-mono);direction:ltr;text-align:right}
+.pnl .v{font:600 20px/1.2 var(--f-mono);direction:ltr;text-align:right}
+.bar{height:10px;border-radius:99px;background:var(--sf3);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--good);border-radius:99px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px 18px}
+.kv div{min-width:0}.kv .label{display:block;margin-bottom:2px}.kv b{font-weight:600;overflow-wrap:anywhere}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
+.ph-i{position:relative;aspect-ratio:1;border-radius:var(--r-s);overflow:hidden;border:1px solid var(--ln2);background:var(--bg2);cursor:pointer;padding:0}
+.ph-i img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-i span{position:absolute;inset:auto 6px 6px auto;background:rgba(0,0,0,.7);font-size:11px;padding:1px 8px;border-radius:99px}
+.thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--ln2);cursor:pointer;display:block}
+.lbx{display:flex;flex-direction:column;gap:12px;align-items:center}
+.lbx img{max-width:100%;max-height:68vh;border-radius:var(--r-s)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--sf);border:1px solid var(--ln2);border-radius:var(--r-s);padding:3px;gap:2px}
+.seg button{min-height:36px;padding:0 14px;border:0;background:none;border-radius:6px;color:var(--ink2);font-weight:600;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ac);color:var(--ac-ink)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bars .b{display:grid;grid-template-columns:130px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.bars .b .bar{height:8px}.bars .b .bar>i{background:var(--c-exp)}
+@media (max-width:520px){.bars .b{grid-template-columns:96px 1fr auto}}
+
+/* chart */
+#chart{position:relative;width:100%}
+#chart svg{display:block;width:100%;overflow:visible}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-bottom:8px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.ln{height:3px;width:16px;border-radius:2px}
+.tip{position:absolute;z-index:5;pointer-events:none;background:var(--sf3);border:1px solid var(--ln2);border-radius:var(--r-s);padding:8px 12px;font-size:12.5px;min-width:150px;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.tip b{display:block;margin-bottom:4px}
+.tip div{display:flex;justify-content:space-between;gap:14px}
+.rep-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.rep-tabs .chip{flex:none}
+.note{font-size:12.5px;color:var(--ink3);line-height:1.7}
+.cloud{display:flex;flex-direction:column;gap:8px}
+.kbd{font-family:var(--f-mono);background:var(--sf3);padding:1px 6px;border-radius:4px;font-size:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.ax{fill:var(--ink3);font:11px var(--f-mono)}
+.axl{fill:var(--ink2);font:12px var(--f-body)}
+.gfit{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+button.tile{font:inherit;color:inherit;text-align:start;cursor:pointer}
+button.tile:hover{border-color:#555b64;background:var(--sf2)}
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:minmax(0,1fr)}}
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:0;border-bottom:1px solid var(--ln);background:none;width:100%;text-align:start;cursor:pointer}
+.lrow:last-child{border-bottom:0}
+.lrow:hover{background:var(--sf2)}
+.lrow .t{font-weight:600;min-width:0;overflow-wrap:anywhere}
+@media (max-width:520px){.job-f .cu{display:none}}
+.tiles-mini .tile .v{font-size:16px}
+.rf{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.rf .f{min-width:150px;flex:1}
+td.nw{white-space:nowrap}
+</style>
+<div id="app" dir="rtl" lang="ar">
+  <aside class="side">
+    <div class="hazard"></div>
+    <div class="brand"><div class="brand-mark" id="brand-mark"></div><div><b>إدارة ورش السيارات</b><small>CAR WORKSHOP MANAGER</small></div></div>
+    <nav class="nav" id="nav-side" aria-label="التنقل الرئيسي"></nav>
+    <div class="side-foot">
+      <button class="btn primary" data-act="quick" id="side-add"></button>
+      <div class="small" id="side-info"></div>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="hazard"></div>
+      <div class="top-in">
+        <div class="top-brand"><div class="brand-mark" id="brand-mark2"></div><span>الورشة</span></div>
+        <div class="search">
+          <span id="search-ic"></span>
+          <input id="gs" type="search" placeholder="ابحث باسم الزبون أو الهاتف أو رقم اللوحة" autocomplete="off" aria-label="بحث">
+          <div class="sres hide" id="sres"></div>
+        </div>
+        <a class="icon-btn" href="#config" id="cfg-link" aria-label="الإعدادات"></a>
+      </div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+  <nav class="tabbar" aria-label="التنقل"><div class="tabbar-in" id="nav-tabs"></div></nav>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<div id="layer"></div>
+<script>
+(function () {
+'use strict';
+document.documentElement.lang = 'ar';
+document.documentElement.dir = 'rtl';
+
+/* =============================================================
+   أدوات عامة
+   ============================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const AR_DIG = { '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9', '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
+const latin = s => String(s ?? '').replace(/[٠-٩۰-۹]/g, d => AR_DIG[d]);
+function parseNum(v) {
+  let s = latin(v).replace(/\s/g, '').replace(/٫/g, '.').replace(/٬/g, ',');
+  if (!s) return 0;
+  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');
+  else if (s.includes(',')) {
+    const p = s.split(',');
+    if (p.length === 2 && p[1].length !== 3) s = p[0] + '.' + p[1]; else s = s.replace(/,/g, '');
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+const r3 = x => Math.round((Number(x) || 0) * 1000 + (x < 0 ? -1e-7 : 1e-7)) / 1000;
+const pad = n => String(n).padStart(2, '0');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function todayISO() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function fmtDate(iso) { if (!iso) return '—'; const [y, m, d] = String(iso).split('-'); return `${d}/${m}/${y}`; }
+const MONTHS = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
+const MONTHS_S = ['ك2', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'ت1', 'ت2', 'ك1'];
+const monthLabel = k => { const [y, m] = k.split('-'); return MONTHS[+m - 1] + ' ' + y; };
+function dayDiff(iso) { if (!iso) return null; const [y, m, d] = iso.split('-').map(Number); return Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / 864e5); }
+function norm(s) {
+  return latin(s).toLowerCase().replace(/[ً-ٰٟـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي');
+}
+const normPlate = s => latin(s).toLowerCase().replace(/[\s\-_.\/]/g, '');
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const LRI = s => s ? '\u2066' + s + '\u2069' : '';
+const sum = (arr, f) => r3(arr.reduce((a, x) => a + (f ? f(x) : x), 0));
+
+/* أيقونات */
+const ICONS = {
+  home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
+  car: '<path d="M3 15l2-6a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 9l2 6v4h-2v-2H5v2H3z"/><circle cx="7.5" cy="13.5" r="1"/><circle cx="16.5" cy="13.5" r="1"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"/>',
+  chart: '<path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
+  sliders: '<path d="M4 7h9"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/>',
+  trash: '<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  upload: '<path d="M12 20V9"/><path d="M7 14l5-5 5 5"/><path d="M5 4h14"/>',
+  wallet: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 12h.01"/><path d="M17.5 12h.01"/>',
+  receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6"/><path d="M9 12h6"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',
+  x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  file: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/>',
+  table: '<rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 10h17"/><path d="M10 5v14"/>',
+  back: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+  cloud: '<path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5z"/>',
+  db: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+  tag: '<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',
+  logo: '<path d="M3 15l2-6a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 9l2 6v3h-2v-2H5v2H3z" stroke-width="2"/><circle cx="7.5" cy="13" r="1.2"/><circle cx="16.5" cy="13" r="1.2"/>',
+  wrench: '<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M14.5 6.5l3 3"/>'
+};
+const ic = (n, s = 20) => `<svg class="ic" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+/* =============================================================
+   الثوابت
+   ============================================================= */
+const STATUSES = [
+  { k: 'received', t: 'مستلمة' },
+  { k: 'working', t: 'قيد العمل' },
+  { k: 'parts', t: 'بانتظار القطع' },
+  { k: 'ready', t: 'جاهزة للتسليم' },
+  { k: 'delivered', t: 'تم التسليم' }
+];
+const ST = Object.fromEntries(STATUSES.map(s => [s.k, s.t]));
+const CATS = ['قطع غيار', 'مواد سمكرة', 'مواد دهان وبويه', 'معجون وصنفرة', 'أجور عمال', 'أجور كهرباء أو ميكانيك خارجية', 'مصاريف نقل', 'مصاريف أخرى', 'إيجار وفواتير الورشة'];
+const METHODS = [{ k: 'cash', t: 'نقداً' }, { k: 'bank', t: 'تحويل بنكي' }, { k: 'wallet', t: 'محفظة إلكترونية' }];
+const METH = Object.fromEntries(METHODS.map(m => [m.k, m.t]));
+const PTYPES = [{ k: 'advance', t: 'دفعة مقدمة' }, { k: 'partial', t: 'دفعة جزئية' }, { k: 'final', t: 'دفعة نهائية' }];
+const PTYPE = Object.fromEntries(PTYPES.map(m => [m.k, m.t]));
+const CURRENCIES = [
+  { c: 'JOD', s: 'د.أ', n: 'دينار أردني', d: 3 }, { c: 'USD', s: '$', n: 'دولار أمريكي', d: 2 }, { c: 'SAR', s: 'ر.س', n: 'ريال سعودي', d: 2 },
+  { c: 'AED', s: 'د.إ', n: 'درهم إماراتي', d: 2 }, { c: 'KWD', s: 'د.ك', n: 'دينار كويتي', d: 3 }, { c: 'QAR', s: 'ر.ق', n: 'ريال قطري', d: 2 },
+  { c: 'OMR', s: 'ر.ع', n: 'ريال عماني', d: 3 }, { c: 'BHD', s: 'د.ب', n: 'دينار بحريني', d: 3 }, { c: 'EGP', s: 'ج.م', n: 'جنيه مصري', d: 2 },
+  { c: 'ILS', s: '₪', n: 'شيكل', d: 2 }, { c: 'IQD', s: 'د.ع', n: 'دينار عراقي', d: 0 }, { c: 'LBP', s: 'ل.ل', n: 'ليرة لبنانية', d: 0 },
+  { c: 'SYP', s: 'ل.س', n: 'ليرة سورية', d: 0 }, { c: 'TRY', s: '₺', n: 'ليرة تركية', d: 2 }, { c: 'EUR', s: '€', n: 'يورو', d: 2 }, { c: 'CUSTOM', s: '', n: 'عملة أخرى', d: 2 }
+];
+const COLOR_MAP = { 'أبيض': '#f4f4f2', 'ابيض': '#f4f4f2', 'أسود': '#161616', 'اسود': '#161616', 'فضي': '#b9bcc0', 'رمادي': '#7d8085', 'رصاصي': '#6b6f75', 'أحمر': '#d12d2d', 'احمر': '#d12d2d', 'أزرق': '#2f5fc4', 'ازرق': '#2f5fc4', 'أخضر': '#2f8f4f', 'اخضر': '#2f8f4f', 'أصفر': '#e8c630', 'اصفر': '#e8c630', 'برتقالي': '#ee7a1c', 'بني': '#6b4a2e', 'ذهبي': '#c9a24a', 'بيج': '#d8c7a3', 'كحلي': '#1d2b53', 'عنابي': '#6b1f2f', 'بنفسجي': '#6a3fa0', 'وردي': '#e58aa8', 'زيتي': '#5d6b34', 'سماوي': '#5bb7e6', 'نحاسي': '#a8643a', 'شمبانيا': '#d9c59a' };
+const colorDot = name => { const n = norm(name || ''); for (const k of Object.keys(COLOR_MAP)) if (n.includes(norm(k))) return COLOR_MAP[k]; return ''; };
+
+/* =============================================================
+   قاعدة البيانات الدائمة (IndexedDB)
+   ============================================================= */
+const IDB = {
+  db: null, ok: false,
+  open() {
+    return new Promise(res => {
+      try {
+        const rq = indexedDB.open('car-workshop-manager', 1);
+        rq.onupgradeneeded = () => {
+          const db = rq.result;
+          ['customers', 'cars', 'expenses', 'payments', 'photos', 'photoData'].forEach(n => db.createObjectStore(n, { keyPath: 'id' }));
+          db.createObjectStore('meta', { keyPath: 'key' });
+        };
+        rq.onsuccess = () => { IDB.db = rq.result; IDB.ok = true; res(true); };
+        rq.onerror = () => res(false);
+        rq.onblocked = () => res(false);
+      } catch (e) { res(false); }
+    });
+  },
+  run(store, mode, fn) {
+    return new Promise((res, rej) => {
+      if (!IDB.ok) return res(undefined);
+      try {
+        const tx = IDB.db.transaction(store, mode);
+        const st = tx.objectStore(store);
+        let out;
+        const r = fn(st);
+        if (r && 'onsuccess' in r) r.onsuccess = () => { out = r.result; };
+        tx.oncomplete = () => res(out);
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  all: s => IDB.run(s, 'readonly', st => st.getAll()).then(v => v || []),
+  get: (s, id) => IDB.run(s, 'readonly', st => st.get(id)),
+  put: (s, v) => IDB.run(s, 'readwrite', st => st.put(v)),
+  del: (s, id) => IDB.run(s, 'readwrite', st => st.delete(id)),
+  clear: s => IDB.run(s, 'readwrite', st => st.clear()),
+  putMany: (s, arr) => IDB.run(s, 'readwrite', st => { arr.forEach(v => st.put(v)); })
+};
+
+/* =============================================================
+   الحالة
+   ============================================================= */
+const DEFAULTS = { workshop: '', phone: '', address: '', currency: 'JOD', symbol: 'د.أ', decimals: 3, receiptNo: 1001, lastBackup: '', cloudAuto: false, cloudAt: '' };
+const S = { customers: [], cars: [], expenses: [], payments: [], photos: [], settings: { ...DEFAULTS } };
+const X = {};
+const UI = { storage: 'pending', persisted: null, dashPeriod: 'month', chartN: 6, chartTable: false, carQ: '', carF: 'all', carDebt: false, custQ: '', rep: 'profit', repFrom: '', repTo: '', repStatus: 'all', repPer: 'month', repCar: 'all' };
+
+function reindex() {
+  X.cust = new Map(S.customers.map(c => [c.id, c]));
+  X.car = new Map(S.cars.map(c => [c.id, c]));
+  X.expByCar = new Map(); X.payByCar = new Map(); X.carsByCust = new Map(); X.photosByRef = new Map(); X.fin = new Map();
+  S.expenses.forEach(e => { const k = e.carId || '_general'; if (!X.expByCar.has(k)) X.expByCar.set(k, []); X.expByCar.get(k).push(e); });
+  S.payments.forEach(p => { if (!X.payByCar.has(p.carId)) X.payByCar.set(p.carId, []); X.payByCar.get(p.carId).push(p); });
+  S.cars.forEach(c => { if (!X.carsByCust.has(c.customerId)) X.carsByCust.set(c.customerId, []); X.carsByCust.get(c.customerId).push(c); });
+  S.photos.forEach(p => { if (!X.photosByRef.has(p.refId)) X.photosByRef.set(p.refId, []); X.photosByRef.get(p.refId).push(p); });
+  for (const arr of X.expByCar.values()) arr.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  for (const arr of X.payByCar.values()) arr.sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.createdAt - b.createdAt);
+}
+function fin(car) {
+  let f = X.fin.get(car.id);
+  if (f) return f;
+  const base = car.lump ? r3(car.agreed) : r3(r3(car.bodyFee) + r3(car.paintFee));
+  const extra = r3(car.extraFee), disc = r3(car.discount);
+  const due = r3(base + extra - disc);
+  const exps = X.expByCar.get(car.id) || [], pays = X.payByCar.get(car.id) || [];
+  const expenses = sum(exps, e => e.amount), paid = sum(pays, p => p.amount);
+  f = { base, extra, disc, due, paid, remaining: r3(due - paid), expenses, net: r3(due - expenses), cash: r3(paid - expenses), exps, pays };
+  X.fin.set(car.id, f);
+  return f;
+}
+function totals() {
+  const cars = S.cars;
+  const revenue = sum(cars, c => fin(c).due);
+  const expAll = sum(S.expenses, e => e.amount);
+  const general = sum(X.expByCar.get('_general') || [], e => e.amount);
+  const paid = sum(S.payments, p => p.amount);
+  const receivable = sum(cars, c => Math.max(0, fin(c).remaining));
+  return { revenue, expAll, general, paid, receivable, net: r3(revenue - expAll), cash: r3(paid - expAll) };
+}
+const custName = id => (X.cust.get(id) || {}).name || '—';
+const carTitle = c => [c.make, c.model, c.year].filter(Boolean).join(' ') || 'سيارة';
+const carLabel = c => `${carTitle(c)}${c.plate ? ' · ' + LRI(c.plate) : ''} · ${custName(c.customerId)}`;
+
+/* التنسيق المالي */
+function money(n) {
+  const d = S.settings.decimals;
+  const v = Number(n) || 0;
+  const s = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return (v < 0 && Math.abs(v) >= Math.pow(10, -d) / 2 ? '-' : '') + s;
+}
+const sym = () => S.settings.symbol || S.settings.currency;
+const cur = (n, cls = '') => `<span class="num ${cls}">${money(n)}</span><span class="cu">${esc(sym())}</span>`;
+const curTone = n => cur(n, n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+
+/* =============================================================
+   الحفظ
+   ============================================================= */
+const hooks = { after: () => { } };
+async function persist(store, obj, touch = true) {
+  if (touch) obj.updatedAt = Date.now();
+  const arr = S[store];
+  const i = arr.findIndex(x => x.id === obj.id);
+  if (i < 0) arr.push(obj); else arr[i] = obj;
+  try { await IDB.put(store, obj); } catch (e) { toast('تعذر الحفظ في قاعدة البيانات: ' + (e && e.message || e), 'err'); }
+  reindex(); hooks.after();
+}
+async function remove(store, id) {
+  const arr = S[store];
+  const i = arr.findIndex(x => x.id === id);
+  if (i >= 0) arr.splice(i, 1);
+  try { await IDB.del(store, id); } catch (e) { }
+  reindex(); hooks.after();
+}
+async function saveSettings() { try { await IDB.put('meta', { key: 'settings', value: S.settings }); } catch (e) { } hooks.after(); }
+
+async function loadAll() {
+  const ok = await IDB.open();
+  UI.storage = ok ? 'ok' : 'none';
+  if (ok) {
+    try {
+      const [customers, cars, expenses, payments, photos, meta] = await Promise.all(['customers', 'cars', 'expenses', 'payments', 'photos', 'meta'].map(s => IDB.all(s)));
+      S.customers = customers; S.cars = cars; S.expenses = expenses; S.payments = payments; S.photos = photos;
+      const st = meta.find(m => m.key === 'settings');
+      S.settings = Object.assign({}, DEFAULTS, st ? st.value : {});
+    } catch (e) { UI.storage = 'none'; }
+  }
+  const maxNo = S.payments.reduce((a, p) => Math.max(a, p.no || 0), 0);
+  if (S.settings.receiptNo <= maxNo) S.settings.receiptNo = maxNo + 1;
+  reindex();
+  try { if (navigator.storage && navigator.storage.persist) { UI.persisted = await navigator.storage.persist(); } } catch (e) { }
+}
+
+/* أسماء الأيام/الفترات للتقارير */
+function inRange(d, from, to) { if (!d) return false; if (from && d < from) return false; if (to && d > to) return false; return true; }
+function periodKey(d, mode) { return mode === 'day' ? d : mode === 'month' ? d.slice(0, 7) : d.slice(0, 4); }
+function periodLabel(k, mode) { return mode === 'day' ? fmtDate(k) : mode === 'month' ? monthLabel(k) : k; }
+function deliveredDate(c) { return c.deliveredDate || c.entryDate || ''; }
+/* ملخص فترة: مقبوضات/مصروفات نقدية وربح السيارات المسلّمة */
+function periodStats(from, to) {
+  const pays = S.payments.filter(p => inRange(p.date, from, to));
+  const exps = S.expenses.filter(e => inRange(e.date, from, to));
+  const dcars = S.cars.filter(c => c.status === 'delivered' && inRange(deliveredDate(c), from, to));
+  const inn = sum(pays, p => p.amount), out = sum(exps, e => e.amount);
+  return { inn, out, cash: r3(inn - out), delivered: dcars.length, carsProfit: sum(dcars, c => fin(c).net), pays, exps, dcars };
+}
+function monthKeysBack(n) {
+  const out = []; const d = new Date(); d.setDate(1);
+  for (let i = n - 1; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push(x.getFullYear() + '-' + pad(x.getMonth() + 1)); }
+  return out;
+}
+
+
+/* =============================================================
+   التصدير: تنزيل الملفات، PDF (رسم مباشر على canvas)، Excel (.xlsx)
+   ============================================================= */
+const FB = '"IBM Plex Sans Arabic","Segoe UI",Tahoma,"Noto Sans Arabic","DejaVu Sans",sans-serif';
+const FD = '"Reem Kufi","IBM Plex Sans Arabic",Tahoma,"DejaVu Sans",sans-serif';
+const FM = '"IBM Plex Mono",Consolas,"DejaVu Sans Mono",monospace';
+let _fontsReady = null;
+function loadFonts() {
+  if (_fontsReady) return _fontsReady;
+  _fontsReady = (async () => {
+    try {
+      if (document.fonts && document.fonts.load) {
+        await Promise.race([
+          Promise.all([
+            document.fonts.load('400 24px "IBM Plex Sans Arabic"', 'عربي'), document.fonts.load('600 24px "IBM Plex Sans Arabic"', 'عربي'),
+            document.fonts.load('700 24px "Reem Kufi"', 'عربي'), document.fonts.load('600 24px "IBM Plex Mono"', '123')
+          ]),
+          new Promise(r => setTimeout(r, 2500))
+        ]);
+      }
+    } catch (e) { }
+  })();
+  return _fontsReady;
+}
+
+let _dl;
+async function getDownloads() {
+  if (_dl !== undefined) return _dl;
+  try { _dl = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null; } catch (e) { _dl = null; }
+  return _dl;
+}
+async function deliver(filename, data, label) {
+  const dl = await getDownloads();
+  if (dl) {
+    try { await dl.save({ filename, data }); toast('تم تجهيز الملف: ' + (label || filename)); return true; }
+    catch (e) {
+      if (e && e.code === 'declined') return false;
+      toast('تعذر حفظ الملف: ' + ((e && (e.message || e.code)) || ''), 'err'); return false;
+    }
+  }
+  if (!window.claude) { // صفحة مفتوحة كملف مستقل خارج Claude
+    const blob = data instanceof Blob ? data : new Blob([data]);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast('تم تنزيل الملف: ' + (label || filename)); return true;
+  }
+  toast('تنزيل الملفات غير متاح في هذا العرض. افتح التطبيق من claude.ai.', 'err');
+  return false;
+}
+const fileStamp = () => { const d = new Date(); return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()); };
+const safeName = s => String(s || '').replace(/[\\/:*?"<>|\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+
+/* ---------- نموذج التقرير ----------
+   rep = { title, subtitle, orient:'p'|'l', summary:[{l,v,type,tone}], tables:[{title, cols:[{h,type,w,sum,tone}], rows:[[..]], totals:bool}] }  */
+function cellText(v, type) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'string' && type && type !== 'text' && !(type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v)) && !/^-?\d+(\.\d+)?$/.test(v)) return v;
+  if (type === 'money') return money(v);
+  if (type === 'int') return String(v);
+  if (type === 'date') return fmtDate(v);
+  return String(v);
+}
+const isTextVal = (v, type) => !type || type === 'text' || (typeof v === 'string' && !(type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v)) && !/^-?\d+(\.\d+)?$/.test(v));
+function tableTotals(tb) {
+  return tb.cols.map((c, j) => c.sum ? r3(tb.rows.reduce((a, r) => a + (Number(r[j]) || 0), 0)) : null);
+}
+
+/* ---------- رسم PDF ---------- */
+function mkCanvas(W, H) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H); x.textBaseline = 'middle';
+  return { c, x, W, H };
+}
+function T(x, s, px, py, o = {}) {
+  x.font = `${o.w || 400} ${o.s || 24}px ${o.f || FB}`;
+  x.fillStyle = o.c || '#17181b'; x.textAlign = o.a || 'right'; x.direction = o.d || 'rtl';
+  x.fillText(String(s), px, py);
+}
+function tw(x, s, o = {}) { x.font = `${o.w || 400} ${o.s || 24}px ${o.f || FB}`; x.direction = o.d || 'rtl'; return x.measureText(String(s)).width; }
+function wrapLines(x, s, maxW, o) {
+  s = String(s);
+  const words = s.split(/\s+/).filter(Boolean); const lines = []; let cur = '';
+  for (const w of words) {
+    const t = cur ? cur + ' ' + w : w;
+    if (!cur || tw(x, t, o) <= maxW) cur = t; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.map(l => { if (tw(x, l, o) <= maxW) return l; let k = l; while (k.length > 2 && tw(x, k + '…', o) > maxW) k = k.slice(0, -1); return k + '…'; });
+}
+function rrect(x, px, py, w, h, r) { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); }
+function hazard(x, px, py, w, h) {
+  x.save(); x.beginPath(); x.rect(px, py, w, h); x.clip(); x.fillStyle = '#0c0d0f'; x.fillRect(px, py, w, h); x.fillStyle = '#ff7a1a';
+  for (let i = -h; i < w + h; i += 40) { x.beginPath(); x.moveTo(px + i, py + h); x.lineTo(px + i + 20, py + h); x.lineTo(px + i + 20 + h, py); x.lineTo(px + i + h, py); x.closePath(); x.fill(); }
+  x.restore();
+}
+const tone = n => n > 0 ? '#12804a' : n < 0 ? '#c2272d' : '#17181b';
+
+async function renderReportPages(rep) {
+  await loadFonts();
+  const land = rep.orient === 'l';
+  const W = land ? 1754 : 1240, H = land ? 1240 : 1754, M = 64, CW = W - 2 * M, LIM = H - M - 50;
+  const pages = []; let P, y;
+  const shop = S.settings.workshop || 'الورشة';
+  function newPage(first) {
+    P = mkCanvas(W, H); pages.push(P); const x = P.x;
+    if (first) {
+      x.fillStyle = '#0c0d0f'; x.fillRect(0, 0, W, 132);
+      T(x, shop, W - M, 52, { s: 50, f: FD, w: 700, c: '#ffffff' });
+      const sub = [S.settings.phone, S.settings.address].filter(Boolean).join('  ·  ');
+      if (sub) T(x, sub, W - M, 102, { s: 22, c: '#b9b5ac' });
+      T(x, 'CAR WORKSHOP MANAGER', M, 52, { s: 20, f: FM, w: 500, c: '#ff7a1a', a: 'left', d: 'ltr' });
+      T(x, fmtDate(todayISO()), M, 100, { s: 24, f: FM, c: '#b9b5ac', a: 'left', d: 'ltr' });
+      hazard(x, 0, 132, W, 12);
+      y = 190;
+      T(x, rep.title, W - M, y, { s: 46, f: FD, w: 700 }); y += 54;
+      if (rep.subtitle) { T(x, rep.subtitle, W - M, y, { s: 26, c: '#55575c' }); y += 40; }
+      y += 10;
+    } else {
+      T(x, rep.title, W - M, 60, { s: 28, f: FD, w: 700, c: '#55575c' });
+      x.fillStyle = '#ff7a1a'; x.fillRect(M, 92, CW, 3);
+      y = 126;
+    }
+  }
+  function drawSummary() {
+    const items = rep.summary || []; if (!items.length) return;
+    const per = Math.min(items.length, land ? 5 : 4), gap = 16, cw = (CW - gap * (per - 1)) / per, ch = 112;
+    for (let i = 0; i < items.length; i += per) {
+      const row = items.slice(i, i + per);
+      if (y + ch > LIM) newPage(false);
+      row.forEach((it, k) => {
+        const px = W - M - (k + 1) * cw - k * gap; const x = P.x;
+        x.fillStyle = '#f6f3ec'; rrect(x, px, y, cw, ch, 14); x.fill();
+        x.strokeStyle = '#e0dbcf'; x.lineWidth = 2; rrect(x, px, y, cw, ch, 14); x.stroke();
+        let ls = 22; while (ls > 15 && tw(x, it.l, { s: ls }) > cw - 36) ls -= 1;
+        T(x, it.l, px + cw - 20, y + 30, { s: ls, c: '#6b6c70' });
+        const val = it.type === 'money' ? money(it.v) + ' ' + sym() : String(it.v);
+        let fs = 34; while (fs > 18 && tw(x, val, { s: fs, w: 600, f: FM, d: 'ltr' }) > cw - 36) fs -= 2;
+        T(x, val, px + cw - 20, y + 74, { s: fs, w: 600, f: FM, d: 'ltr', a: 'right', c: it.tone ? tone(it.v) : '#17181b' });
+      });
+      y += ch + 16;
+    }
+    y += 8;
+  }
+  function drawTable(tb) {
+    const cols = tb.cols, tot = cols.reduce((a, c) => a + (c.w || 1), 0), ws = cols.map(c => CW * (c.w || 1) / tot);
+    const colX = []; let acc = W - M; ws.forEach(w => { colX.push([acc - w, acc]); acc -= w; });
+    const FS = 22, LH = 32;
+    const optsFor = c => (c.type === 'text' || !c.type) ? { s: FS, d: 'rtl' } : { s: FS, f: FM, d: 'ltr' };
+    function header() {
+      const x = P.x, hh = 58; x.fillStyle = '#1b1d21'; x.fillRect(M, y, CW, hh);
+      cols.forEach((c, j) => {
+        const [l, r] = colX[j]; const isNum = c.type && c.type !== 'text';
+        if (isNum) T(x, c.h, l + 12, y + hh / 2, { s: 21, w: 600, c: '#ffffff', a: 'left', d: 'rtl' });
+        else T(x, c.h, r - 12, y + hh / 2, { s: 21, w: 600, c: '#ffffff' });
+      });
+      x.fillStyle = '#ff7a1a'; x.fillRect(M, y + hh, CW, 4); y += hh + 4;
+    }
+    function row(vals, i, bold) {
+      const x = P.x;
+      const cells = vals.map((v, j) => {
+        const c = cols[j]; const s = cellText(v, c.type); const asText = isTextVal(v, c.type);
+        const o = asText ? { s: FS, d: 'rtl' } : { s: FS, f: FM, d: 'ltr' }; o.w = bold ? 700 : (c.type === 'money' ? 500 : 400);
+        return { s, o, asText, lines: asText ? wrapLines(x, s, ws[j] - 24, o) : [s] };
+      });
+      const lines = Math.max(...cells.map(c => c.lines.length)), rh = lines * LH + 20;
+      return { cells, rh };
+    }
+    function drawRow(vals, i, bold, fill) {
+      const { cells, rh } = row(vals, i, bold);
+      if (y + rh > LIM) { newPage(false); header(); }
+      const x = P.x;
+      x.fillStyle = fill || (i % 2 ? '#f7f5f0' : '#ffffff'); x.fillRect(M, y, CW, rh);
+      x.fillStyle = '#e3dfd6'; x.fillRect(M, y + rh - 1, CW, 1);
+      if (bold) { x.fillStyle = '#17181b'; x.fillRect(M, y, CW, 2); }
+      cells.forEach((c, j) => {
+        const col = cols[j], [l, r] = colX[j], isNum = !c.asText;
+        let color = '#17181b'; if (col.tone && typeof vals[j] === 'number') color = tone(vals[j]);
+        c.lines.forEach((ln, k) => {
+          const cy = y + 10 + LH * k + LH / 2;
+          if (isNum) T(x, ln, col.type === 'date' ? (l + r) / 2 : l + 12, cy, { ...c.o, c: color, a: col.type === 'date' ? 'center' : 'left' });
+          else T(x, ln, r - 12, cy, { ...c.o, c: color });
+        });
+      });
+      y += rh;
+    }
+    if (tb.title) {
+      if (y + 140 > LIM) newPage(false);
+      T(P.x, tb.title, W - M, y + 20, { s: 30, f: FD, w: 700 }); y += 50;
+    }
+    if (y + 58 + 4 + 70 > LIM) newPage(false);
+    header();
+    if (!tb.rows.length) { const x = P.x; x.fillStyle = '#ffffff'; x.fillRect(M, y, CW, 70); T(x, 'لا توجد بيانات في هذه الفترة', W / 2, y + 35, { s: 24, c: '#8a8b8f', a: 'center' }); y += 70; }
+    tb.rows.forEach((r, i) => drawRow(r, i, false));
+    if (tb.totals && tb.rows.length) {
+      const t = tableTotals(tb); const first = cols.findIndex(c => !c.sum);
+      const vals = cols.map((c, j) => c.sum ? t[j] : (j === first ? 'الإجمالي' : ''));
+      drawRow(vals, 0, true, '#efe8d8');
+    }
+    y += 34;
+  }
+  newPage(true);
+  drawSummary();
+  (rep.tables || []).forEach(drawTable);
+  if (rep.notes && rep.notes.length) {
+    rep.notes.forEach(n => { wrapLines(P.x, n, CW, { s: 22 }).forEach(l => { if (y + 34 > LIM) newPage(false); T(P.x, l, W - M, y + 16, { s: 22, c: '#6b6c70' }); y += 34; }); });
+  }
+  pages.forEach((pg, i) => {
+    const x = pg.x;
+    x.fillStyle = '#d8d3c6'; x.fillRect(M, H - M - 14, CW, 2);
+    T(x, shop, W - M, H - M + 14, { s: 20, c: '#8a8b8f' });
+    T(x, `${i + 1} / ${pages.length}`, M, H - M + 14, { s: 20, f: FM, c: '#8a8b8f', a: 'left', d: 'ltr' });
+    T(x, fmtDate(todayISO()), W / 2, H - M + 14, { s: 20, f: FM, c: '#8a8b8f', a: 'center', d: 'ltr' });
+  });
+  return pages.map(p => p.c);
+}
+
+/* كاتب PDF بسيط: صفحة = صورة JPEG */
+async function canvasesToPdf(canvases) {
+  const enc = new TextEncoder(); const parts = []; let off = 0; const offs = [];
+  const push = u => { parts.push(u); off += u.length; };
+  const str = s => push(enc.encode(s));
+  const jpgs = [];
+  for (const c of canvases) { const b = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); jpgs.push(new Uint8Array(await b.arrayBuffer())); }
+  push(new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52, 10, 37, 226, 227, 207, 211, 10]));
+  const n = canvases.length;
+  offs[1] = off; str('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  offs[2] = off; str(`2 0 obj\n<< /Type /Pages /Count ${n} /Kids [${canvases.map((_, i) => `${3 + i * 3} 0 R`).join(' ')}] >>\nendobj\n`);
+  canvases.forEach((c, i) => {
+    const wpt = (c.width / 150 * 72).toFixed(2), hpt = (c.height / 150 * 72).toFixed(2);
+    const po = 3 + i * 3, co = po + 1, io = po + 2;
+    offs[po] = off; str(`${po} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wpt} ${hpt}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>\nendobj\n`);
+    const content = `q ${wpt} 0 0 ${hpt} 0 0 cm /Im0 Do Q`;
+    offs[co] = off; str(`${co} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+    offs[io] = off; str(`${io} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgs[i].length} >>\nstream\n`);
+    push(jpgs[i]); str('\nendstream\nendobj\n');
+  });
+  const count = 3 + n * 3, xr = off;
+  let x = `xref\n0 ${count}\n0000000000 65535 f \n`;
+  for (let i = 1; i < count; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  x += `trailer\n<< /Size ${count} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`;
+  str(x);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+async function exportReportPdf(rep, fname) {
+  try {
+    toast('جاري تجهيز ملف PDF…');
+    const pages = await renderReportPages(rep);
+    const blob = await canvasesToPdf(pages);
+    await deliver(`${safeName(fname || rep.title)}-${fileStamp()}.pdf`, blob, 'PDF');
+  } catch (e) { toast('تعذر إنشاء PDF: ' + (e && e.message || e), 'err'); }
+}
+
+/* ---------- إيصال القبض ---------- */
+function cumAt(pay) {
+  const list = (X.payByCar.get(pay.carId) || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.createdAt - b.createdAt);
+  let s = 0; for (const p of list) { s += p.amount; if (p.id === pay.id) break; } return r3(s);
+}
+function receiptData(pay) {
+  const car = X.car.get(pay.carId) || {}; const f = car.id ? fin(car) : { due: 0 };
+  const paidTo = cumAt(pay);
+  return { car, cust: X.cust.get(pay.customerId || car.customerId) || {}, due: f.due, paidTo, left: r3(f.due - paidTo) };
+}
+function receiptText(pay) {
+  const d = receiptData(pay);
+  return [`*سند قبض رقم ${pay.no || ''}*`, S.settings.workshop || '', `التاريخ: ${fmtDate(pay.date)}`, `استلمنا من: ${d.cust.name || ''}`,
+  `السيارة: ${carTitle(d.car)}${d.car.plate ? ' - لوحة ' + LRI(d.car.plate) : ''}`, `المبلغ المقبوض: ${money(pay.amount)} ${sym()} (${METH[pay.method] || ''} - ${PTYPE[pay.type] || ''})`,
+  `إجمالي المستحق: ${money(d.due)} ${sym()}`, `المقبوض حتى تاريخه: ${money(d.paidTo)} ${sym()}`, `المتبقي: ${money(d.left)} ${sym()}`].filter(Boolean).join('\n');
+}
+async function drawReceipt(pay) {
+  await loadFonts();
+  const d = receiptData(pay); const W = 1240, H = 1280, M = 70; const P = mkCanvas(W, H), x = P.x;
+  const shop = S.settings.workshop || 'الورشة';
+  x.fillStyle = '#0c0d0f'; x.fillRect(0, 0, W, 170);
+  T(x, shop, W - M, 70, { s: 54, f: FD, w: 700, c: '#fff' });
+  const sub = [S.settings.phone, S.settings.address].filter(Boolean).join('  ·  ');
+  if (sub) T(x, sub, W - M, 126, { s: 24, c: '#b9b5ac' });
+  T(x, 'سند قبض', M, 70, { s: 54, f: FD, w: 700, c: '#ff7a1a', a: 'left' });
+  T(x, 'PAYMENT RECEIPT', M, 124, { s: 20, f: FM, c: '#b9b5ac', a: 'left', d: 'ltr' });
+  hazard(x, 0, 170, W, 14);
+  let y = 244;
+  T(x, 'رقم السند', W - M, y, { s: 24, c: '#6b6c70' }); T(x, String(pay.no || ''), W - M - 140, y, { s: 34, w: 600, f: FM, d: 'ltr', a: 'right' });
+  T(x, 'التاريخ', M + 260, y, { s: 24, c: '#6b6c70', a: 'left' }); T(x, fmtDate(pay.date), M + 250, y, { s: 34, w: 600, f: FM, d: 'ltr', a: 'right' });
+  y += 36; x.fillStyle = '#e0dbcf'; x.fillRect(M, y, W - 2 * M, 2); y += 56;
+  const line = (label, val, big) => {
+    T(x, label, W - M, y, { s: 25, c: '#6b6c70' });
+    const lw = 330, maxW = W - 2 * M - lw; const o = { s: big ? 34 : 31, w: 600 };
+    const lines = wrapLines(x, val || '—', maxW, o).slice(0, 2);
+    lines.forEach((l, k) => T(x, l, W - M - lw, y + k * 42, { ...o }));
+    y += 46 + (lines.length - 1) * 42 + 28;
+  };
+  line('استلمنا من السيد/ة:', d.cust.name, true);
+  line('عن إصلاح سيارة:', `${carTitle(d.car)}${d.car.plate ? '  —  لوحة ' + LRI(d.car.plate) : ''}`);
+  line('طريقة الدفع:', `${METH[pay.method] || ''}   ·   ${PTYPE[pay.type] || ''}`);
+  if (pay.notes) line('ملاحظات:', pay.notes);
+  y += 4;
+  const bh = 160; x.fillStyle = '#fff6ec'; rrect(x, M, y, W - 2 * M, bh, 18); x.fill();
+  x.strokeStyle = '#17181b'; x.lineWidth = 4; rrect(x, M, y, W - 2 * M, bh, 18); x.stroke();
+  T(x, 'المبلغ المقبوض', W - M - 36, y + 42, { s: 26, c: '#6b6c70' });
+  const av = money(pay.amount);
+  T(x, av, W - M - 36, y + 108, { s: 78, w: 600, f: FM, d: 'ltr', a: 'right' });
+  const aw = tw(x, av, { s: 78, w: 600, f: FM, d: 'ltr' });
+  T(x, sym(), W - M - 36 - aw - 18, y + 112, { s: 36, w: 600, c: '#ff7a1a' });
+  y += bh + 40;
+  const cw = (W - 2 * M - 32) / 3;
+  [['إجمالي المستحق', d.due], ['المقبوض حتى تاريخه', d.paidTo], ['المتبقي على الزبون', d.left]].forEach((it, k) => {
+    const px = W - M - (k + 1) * cw - k * 16;
+    x.fillStyle = '#f6f3ec'; rrect(x, px, y, cw, 118, 12); x.fill();
+    T(x, it[0], px + cw - 20, y + 34, { s: 22, c: '#6b6c70' });
+    T(x, money(it[1]) + ' ' + sym(), px + cw - 20, y + 84, { s: 32, w: 600, f: FM, d: 'ltr', c: k === 2 && it[1] > 0 ? '#c2272d' : '#17181b' });
+  });
+  y += 118 + 70;
+  [['المستلم', W - M - 190], ['توقيع الزبون', M + 190]].forEach(([t, px]) => {
+    x.fillStyle = '#17181b'; x.fillRect(px - 190, y, 380, 2); T(x, t, px, y + 34, { s: 24, c: '#6b6c70', a: 'center' });
+  });
+  T(x, 'شكراً لتعاملكم معنا', W / 2, H - 46, { s: 24, c: '#8a8b8f', a: 'center' });
+  return P.c;
+}
+
+/* ---------- Excel .xlsx (بدون مكتبات) ---------- */
+const CRCT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRCT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files, mime) {
+  const enc = new TextEncoder(), chunks = [], central = []; let off = 0;
+  const dt = new Date(); const time = (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1); const date = ((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate();
+  for (const f of files) {
+    const name = enc.encode(f.name), len = f.data.length, crc = crc32(f.data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, time, true); h.setUint16(12, date, true);
+    h.setUint32(14, crc, true); h.setUint32(18, len, true); h.setUint32(22, len, true); h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    chunks.push(new Uint8Array(h.buffer), name, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, time, true); c.setUint16(14, date, true);
+    c.setUint32(16, crc, true); c.setUint32(20, len, true); c.setUint32(24, len, true); c.setUint16(28, name.length, true); c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, 0, true); c.setUint32(38, 0, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + len;
+  }
+  let cdSize = 0; central.forEach(u => cdSize += u.length);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(4, 0, true); e.setUint16(6, 0, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true); e.setUint16(20, 0, true);
+  return new Blob([...chunks, ...central, new Uint8Array(e.buffer)], { type: mime });
+}
+const xe = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function colName(i) { let s = '', n = i + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+const dateSerial = iso => { const [y, m, d] = iso.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5); };
+const XS = { def: 0, head: 1, text: 2, money: 3, int: 4, date: 5, totL: 6, totM: 7, title: 8, bold: 9, totI: 10 };
+function reportToSheet(rep) {
+  const rows = []; const widths = []; let freeze = 0;
+  const setW = (j, w) => { widths[j] = Math.max(widths[j] || 0, w); };
+  const C = (v, s, t) => ({ v, s: s ?? XS.text, t });
+  rows.push([C(rep.title, XS.title, 's')]);
+  rows.push([C([S.settings.workshop, rep.subtitle].filter(Boolean).join(' — '), XS.text, 's')]);
+  rows.push([]);
+  (rep.summary || []).forEach(it => {
+    const num = it.type === 'money' || it.type === 'int';
+    rows.push([C(it.l, XS.bold, 's'), num ? C(Number(it.v) || 0, it.type === 'money' ? XS.money : XS.int, 'n') : C(String(it.v), XS.text, 's')]);
+  });
+  if ((rep.summary || []).length) rows.push([]);
+  (rep.tables || []).forEach((tb, ti) => {
+    if (tb.title) rows.push([C(tb.title, XS.bold, 's')]);
+    rows.push(tb.cols.map(c => C(c.h, XS.head, 's')));
+    if ((rep.tables || []).length === 1 && !(rep.summary || []).length) freeze = rows.length;
+    const first = rows.length + 1;
+    tb.cols.forEach((c, j) => setW(j, c.xw || (c.type === 'money' ? 15 : c.type === 'date' ? 13 : c.type === 'int' ? 10 : Math.max(14, Math.min(42, (c.h || '').length * 1.7)))));
+    tb.rows.forEach(r => rows.push(tb.cols.map((c, j) => {
+      const v = r[j];
+      if (v === null || v === undefined || v === '') return C('', XS.text, 'e');
+      if (c.type === 'money') return C(Number(v), XS.money, 'n');
+      if (c.type === 'int') return C(Number(v), XS.int, 'n');
+      if (c.type === 'date') return C(dateSerial(v), XS.date, 'n');
+      const s = String(v); setW(j, Math.min(48, s.length * 1.25 + 2)); return C(s, XS.text, 's');
+    })));
+    const last = rows.length;
+    if (tb.totals && tb.rows.length) {
+      const t = tableTotals(tb); const fi = tb.cols.findIndex(c => !c.sum);
+      rows.push(tb.cols.map((c, j) => c.sum ? { v: t[j], s: c.type === 'int' ? XS.totI : XS.totM, t: 'f', f: `SUM(${colName(j)}${first}:${colName(j)}${last})` } : C(j === fi ? 'الإجمالي' : '', XS.totL, 's')));
+    }
+    rows.push([]);
+  });
+  (rep.notes || []).forEach(n => rows.push([C(n, XS.text, 's')]));
+  widths[0] = Math.max(widths[0] || 0, 20);
+  return { name: String(rep.sheet || rep.title).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31) || 'Sheet', rows, widths, freeze };
+}
+function sheetXml(sh) {
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0">';
+  if (sh.freeze) x += `<pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze + 1}" activePane="bottomLeft" state="frozen"/>`;
+  x += '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols>';
+  sh.widths.forEach((w, j) => { x += `<col min="${j + 1}" max="${j + 1}" width="${Math.max(8, Math.round((w || 12) * 10) / 10)}" customWidth="1"/>`; });
+  x += '</cols><sheetData>';
+  sh.rows.forEach((r, i) => {
+    x += `<row r="${i + 1}">`;
+    r.forEach((c, j) => {
+      const ref = colName(j) + (i + 1);
+      if (c.t === 'e') x += `<c r="${ref}" s="${c.s}"/>`;
+      else if (c.t === 's') x += `<c r="${ref}" s="${c.s}" t="inlineStr"><is><t xml:space="preserve">${xe(c.v)}</t></is></c>`;
+      else if (c.t === 'f') x += `<c r="${ref}" s="${c.s}"><f>${c.f}</f><v>${c.v}</v></c>`;
+      else x += `<c r="${ref}" s="${c.s}"><v>${c.v}</v></c>`;
+    });
+    x += '</row>';
+  });
+  return x + '</sheetData></worksheet>';
+}
+function stylesXml() {
+  const d = S.settings.decimals; const fmt = '#,##0' + (d ? '.' + '0'.repeat(d) : '');
+  const xf = (num, font, fill, border, al) => `<xf numFmtId="${num}" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"${al ? ' applyAlignment="1"><alignment ' + al + '/></xf>' : '/>'}`;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + `<numFmts count="2"><numFmt numFmtId="164" formatCode="${fmt}"/><numFmt numFmtId="165" formatCode="dd/mm/yyyy"/></numFmts>`
+    + '<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts>'
+    + '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9600C"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF1EAD9"/><bgColor indexed="64"/></patternFill></fill></fills>'
+    + '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF777777"/></top><bottom/><diagonal/></border></borders>'
+    + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+    + '<cellXfs count="11">'
+    + xf(0, 0, 0, 0) + xf(0, 1, 2, 0, 'horizontal="center" vertical="center" wrapText="1"') + xf(0, 0, 0, 0) + xf(164, 0, 0, 0) + xf(1, 0, 0, 0) + xf(165, 0, 0, 0, 'horizontal="center"')
+    + xf(0, 2, 3, 1) + xf(164, 2, 3, 1) + xf(0, 3, 0, 0) + xf(0, 2, 0, 0) + xf(1, 2, 3, 1)
+    + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+}
+function buildXlsx(reps) {
+  const enc = new TextEncoder(); const sheets = reps.map(reportToSheet);
+  const used = new Set(); sheets.forEach(s => { let n = s.name, k = 2; while (used.has(n)) { n = s.name.slice(0, 28) + ' ' + k++; } s.name = n; used.add(n); });
+  const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const files = [
+    { name: '[Content_Types].xml', data: enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>') },
+    { name: '_rels/.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`) },
+    { name: 'xl/workbook.xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R}"><sheets>` + sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>') },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${sheets.length + 1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`) },
+    { name: 'xl/styles.xml', data: enc.encode(stylesXml()) },
+    ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(sheetXml(s)) }))
+  ];
+  return zipStore(files, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+async function exportReportXlsx(reps, fname) {
+  try { const blob = buildXlsx(Array.isArray(reps) ? reps : [reps]); await deliver(`${safeName(fname)}-${fileStamp()}.xlsx`, blob, 'Excel'); }
+  catch (e) { toast('تعذر إنشاء ملف Excel: ' + (e && e.message || e), 'err'); }
+}
+
+/* =============================================================
+   التقارير
+   ============================================================= */
+const REPORTS = [
+  { k: 'profit', t: 'أرباح السيارات' },
+  { k: 'expenses', t: 'المصروفات' },
+  { k: 'receipts', t: 'المقبوضات' },
+  { k: 'debts', t: 'الديون' },
+  { k: 'periodic', t: 'الأرباح الدورية' }
+];
+function rangeLabel() {
+  const f = UI.repFrom, t = UI.repTo;
+  if (!f && !t) return 'كل الفترات';
+  return `من ${f ? fmtDate(f) : 'البداية'} إلى ${t ? fmtDate(t) : 'اليوم'}`;
+}
+const carRowLabel = c => carTitle(c);
+const statusShort = k => ST[k] || k;
+
+function buildProfitReport() {
+  const f = UI.repFrom, t = UI.repTo;
+  const cars = S.cars.filter(c => (!f && !t || inRange(c.entryDate, f, t)) && (UI.repStatus === 'all' || c.status === UI.repStatus))
+    .sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+  const rows = cars.map(c => { const x = fin(c); return [c.entryDate, LRI(c.plate) || '—', carRowLabel(c), custName(c.customerId), statusShort(c.status), x.due, x.paid, x.remaining, x.expenses, x.net]; });
+  const sdue = sum(cars, c => fin(c).due), spaid = sum(cars, c => fin(c).paid), sexp = sum(cars, c => fin(c).expenses);
+  return {
+    title: 'تقرير أرباح السيارات', sheet: 'أرباح السيارات', orient: 'l',
+    subtitle: `${rangeLabel()} (حسب تاريخ دخول السيارة)${UI.repStatus !== 'all' ? ' — الحالة: ' + ST[UI.repStatus] : ''}`,
+    summary: [{ l: 'عدد السيارات', v: cars.length, type: 'int' }, { l: 'إجمالي المستحق', v: sdue, type: 'money' }, { l: 'المقبوض', v: spaid, type: 'money' }, { l: 'مصاريف السيارات', v: sexp, type: 'money' }, { l: 'صافي الربح', v: r3(sdue - sexp), type: 'money', tone: true }],
+    tables: [{
+      cols: [{ h: 'تاريخ الدخول', type: 'date', w: 1.15 }, { h: 'اللوحة', w: 1.15 }, { h: 'السيارة', w: 1.7 }, { h: 'الزبون', w: 1.5 }, { h: 'الحالة', w: 1.2 }, { h: 'المستحق', type: 'money', w: 1.25, sum: true }, { h: 'المقبوض', type: 'money', w: 1.25, sum: true }, { h: 'المتبقي', type: 'money', w: 1.25, sum: true }, { h: 'المصاريف', type: 'money', w: 1.25, sum: true }, { h: 'صافي الربح', type: 'money', w: 1.35, sum: true, tone: true }],
+      rows, totals: true, links: cars.map(c => 'car-' + c.id)
+    }],
+    notes: ['صافي الربح = المبلغ المستحق من الزبون − مصاريف السيارة. لا يشمل المصاريف العامة للورشة غير المرتبطة بسيارة (تظهر في لوحة التحكم وتقرير المصروفات).']
+  };
+}
+function buildExpensesReport() {
+  const f = UI.repFrom, t = UI.repTo;
+  let list = S.expenses.filter(e => (!f && !t) || inRange(e.date, f, t));
+  if (UI.repCar === '_general') list = list.filter(e => !e.carId);
+  else if (UI.repCar !== 'all') list = list.filter(e => e.carId === UI.repCar);
+  list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  const byCat = new Map(); list.forEach(e => { const a = byCat.get(e.category) || { n: 0, s: 0 }; a.n++; a.s = r3(a.s + e.amount); byCat.set(e.category, a); });
+  const catRows = [...byCat.entries()].sort((a, b) => b[1].s - a[1].s).map(([k, v]) => [k, v.n, v.s]);
+  const total = sum(list, e => e.amount), gen = sum(list.filter(e => !e.carId), e => e.amount);
+  const car = UI.repCar !== 'all' && UI.repCar !== '_general' ? X.car.get(UI.repCar) : null;
+  return {
+    title: 'تقرير المصروفات', sheet: 'المصروفات', orient: 'p',
+    subtitle: `${rangeLabel()}${car ? ' — ' + carLabel(car) : UI.repCar === '_general' ? ' — مصاريف الورشة العامة' : ''}`,
+    summary: [{ l: 'عدد المصروفات', v: list.length, type: 'int' }, { l: 'إجمالي المصروفات', v: total, type: 'money' }, { l: 'مصاريف السيارات', v: r3(total - gen), type: 'money' }, { l: 'مصاريف عامة', v: gen, type: 'money' }],
+    tables: [
+      { title: 'حسب التصنيف', cols: [{ h: 'التصنيف', w: 3 }, { h: 'العدد', type: 'int', w: 1, sum: true }, { h: 'المبلغ', type: 'money', w: 1.6, sum: true }], rows: catRows, totals: true },
+      { title: 'التفاصيل', cols: [{ h: 'التاريخ', type: 'date', w: 1.2 }, { h: 'السيارة', w: 2 }, { h: 'البند', w: 2 }, { h: 'التصنيف', w: 1.7 }, { h: 'المبلغ', type: 'money', w: 1.3, sum: true }], rows: list.map(e => [e.date, e.carId && X.car.get(e.carId) ? carTitle(X.car.get(e.carId)) + (X.car.get(e.carId).plate ? ' · ' + LRI(X.car.get(e.carId).plate) : '') : 'مصروف عام', e.name, e.category, e.amount]), totals: true }
+    ]
+  };
+}
+function buildReceiptsReport() {
+  const f = UI.repFrom, t = UI.repTo;
+  const list = S.payments.filter(p => (!f && !t) || inRange(p.date, f, t)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  const byM = new Map(); list.forEach(p => { const a = byM.get(p.method) || { n: 0, s: 0 }; a.n++; a.s = r3(a.s + p.amount); byM.set(p.method, a); });
+  return {
+    title: 'تقرير المقبوضات', sheet: 'المقبوضات', orient: 'p', subtitle: rangeLabel(),
+    summary: [{ l: 'عدد الدفعات', v: list.length, type: 'int' }, { l: 'إجمالي المقبوضات', v: sum(list, p => p.amount), type: 'money' }],
+    tables: [
+      { title: 'حسب طريقة الدفع', cols: [{ h: 'الطريقة', w: 3 }, { h: 'العدد', type: 'int', w: 1, sum: true }, { h: 'المبلغ', type: 'money', w: 1.6, sum: true }], rows: [...byM.entries()].map(([k, v]) => [METH[k] || k, v.n, v.s]), totals: true },
+      {
+        title: 'التفاصيل', cols: [{ h: 'التاريخ', type: 'date', w: 1.2 }, { h: 'رقم السند', w: 1 }, { h: 'الزبون', w: 1.9 }, { h: 'السيارة', w: 1.9 }, { h: 'الطريقة', w: 1.3 }, { h: 'النوع', w: 1.3 }, { h: 'المبلغ', type: 'money', w: 1.3, sum: true }],
+        rows: list.map(p => { const c = X.car.get(p.carId); return [p.date, p.no || '—', custName(p.customerId || (c && c.customerId)), c ? carTitle(c) + (c.plate ? ' · ' + LRI(c.plate) : '') : '—', METH[p.method] || '', PTYPE[p.type] || '', p.amount]; }), totals: true
+      }
+    ]
+  };
+}
+function buildDebtsReport() {
+  const cars = S.cars.filter(c => fin(c).remaining > 0).sort((a, b) => fin(b).remaining - fin(a).remaining);
+  const byCust = new Map();
+  cars.forEach(c => { const a = byCust.get(c.customerId) || { n: 0, due: 0, paid: 0, rem: 0 }; const x = fin(c); a.n++; a.due = r3(a.due + x.due); a.paid = r3(a.paid + x.paid); a.rem = r3(a.rem + x.remaining); byCust.set(c.customerId, a); });
+  const custRows = [...byCust.entries()].sort((a, b) => b[1].rem - a[1].rem);
+  const total = sum(cars, c => fin(c).remaining);
+  return {
+    title: 'تقرير الديون والمبالغ غير المحصلة', sheet: 'الديون', orient: 'l', subtitle: `الوضع الحالي بتاريخ ${fmtDate(todayISO())}`,
+    summary: [{ l: 'عدد الزبائن المدينين', v: custRows.length, type: 'int' }, { l: 'عدد السيارات', v: cars.length, type: 'int' }, { l: 'إجمالي الديون', v: total, type: 'money', tone: false }],
+    tables: [
+      { title: 'حسب الزبون', cols: [{ h: 'الزبون', w: 2.2 }, { h: 'الهاتف', w: 1.6 }, { h: 'عدد السيارات', type: 'int', w: 1.1, sum: true }, { h: 'المستحق', type: 'money', w: 1.3, sum: true }, { h: 'المقبوض', type: 'money', w: 1.3, sum: true }, { h: 'المتبقي', type: 'money', w: 1.4, sum: true }], rows: custRows.map(([id, v]) => [custName(id), (X.cust.get(id) || {}).phone || '—', v.n, v.due, v.paid, v.rem]), totals: true, links: custRows.map(([id]) => 'cust-' + id) },
+      {
+        title: 'تفاصيل السيارات', cols: [{ h: 'الزبون', w: 1.7 }, { h: 'السيارة', w: 1.7 }, { h: 'اللوحة', w: 1.1 }, { h: 'الحالة', w: 1.1 }, { h: 'آخر دفعة', type: 'date', w: 1.1 }, { h: 'المستحق', type: 'money', w: 1.2, sum: true }, { h: 'المقبوض', type: 'money', w: 1.2, sum: true }, { h: 'المتبقي', type: 'money', w: 1.3, sum: true }],
+        rows: cars.map(c => { const x = fin(c); const lp = x.pays.length ? x.pays[x.pays.length - 1].date : ''; return [custName(c.customerId), carTitle(c), LRI(c.plate) || '—', statusShort(c.status), lp, x.due, x.paid, x.remaining]; }), totals: true, links: cars.map(c => 'car-' + c.id)
+      }
+    ]
+  };
+}
+function buildPeriodicReport(mode) {
+  mode = mode || UI.repPer;
+  const f = UI.repFrom, t = UI.repTo;
+  const keys = new Set();
+  S.payments.forEach(p => { if (p.date && (!f && !t || inRange(p.date, f, t))) keys.add(periodKey(p.date, mode)); });
+  S.expenses.forEach(e => { if (e.date && (!f && !t || inRange(e.date, f, t))) keys.add(periodKey(e.date, mode)); });
+  S.cars.forEach(c => { const d = deliveredDate(c); if (c.status === 'delivered' && d && (!f && !t || inRange(d, f, t))) keys.add(periodKey(d, mode)); });
+  const rows = [...keys].sort().reverse().map(k => {
+    const inn = sum(S.payments.filter(p => p.date && periodKey(p.date, mode) === k && (!f && !t || inRange(p.date, f, t))), p => p.amount);
+    const out = sum(S.expenses.filter(e => e.date && periodKey(e.date, mode) === k && (!f && !t || inRange(e.date, f, t))), e => e.amount);
+    const dc = S.cars.filter(c => c.status === 'delivered' && deliveredDate(c) && periodKey(deliveredDate(c), mode) === k && (!f && !t || inRange(deliveredDate(c), f, t)));
+    return [periodLabel(k, mode), inn, out, r3(inn - out), dc.length, sum(dc, c => fin(c).net)];
+  });
+  const lbl = { day: 'اليومية', month: 'الشهرية', year: 'السنوية' }[mode];
+  const tin = rows.reduce((a, r) => a + r[1], 0), tout = rows.reduce((a, r) => a + r[2], 0);
+  return {
+    title: `تقرير الأرباح ${lbl}`, sheet: `الأرباح ${lbl}`, orient: 'l', subtitle: rangeLabel(),
+    summary: [{ l: 'إجمالي المقبوض', v: r3(tin), type: 'money' }, { l: 'إجمالي المصروف', v: r3(tout), type: 'money' }, { l: 'الصافي النقدي', v: r3(tin - tout), type: 'money', tone: true }],
+    tables: [{ cols: [{ h: mode === 'day' ? 'اليوم' : mode === 'month' ? 'الشهر' : 'السنة', w: 1.8 }, { h: 'المقبوض', type: 'money', w: 1.3, sum: true }, { h: 'المصروف', type: 'money', w: 1.3, sum: true }, { h: 'الصافي النقدي', type: 'money', w: 1.4, sum: true, tone: true }, { h: 'سيارات مسلّمة', type: 'int', w: 1.1, sum: true }, { h: 'ربح السيارات المسلّمة', type: 'money', w: 1.6, sum: true, tone: true }], rows, totals: true }],
+    notes: ['الصافي النقدي = المقبوض − المصروف خلال الفترة (يشمل المصاريف العامة).', 'ربح السيارات المسلّمة = صافي ربح كل سيارة تم تسليمها في تلك الفترة (المستحق − مصاريف السيارة).']
+  };
+}
+function buildReport(k) {
+  return ({ profit: buildProfitReport, expenses: buildExpensesReport, receipts: buildReceiptsReport, debts: buildDebtsReport, periodic: () => buildPeriodicReport() })[k]();
+}
+
+/* تقرير سيارة واحدة */
+function buildCarReport(car) {
+  const x = fin(car);
+  const priceRows = car.lump ? [['المبلغ المتفق عليه (مقطوع)', x.base]] : [['أجرة السمكرة', r3(car.bodyFee)], ['أجرة الدهان', r3(car.paintFee)]];
+  priceRows.push(['أجرة الأعمال الإضافية', x.extra], ['الخصومات', -x.disc], ['المبلغ المستحق على الزبون', x.due]);
+  return {
+    title: `تقرير سيارة: ${carTitle(car)}${car.plate ? ' — ' + LRI(car.plate) : ''}`, sheet: 'تقرير السيارة', orient: 'p',
+    subtitle: `الزبون: ${custName(car.customerId)} · تاريخ الدخول: ${fmtDate(car.entryDate)} · الحالة: ${ST[car.status]}`,
+    summary: [{ l: 'المبلغ المستحق', v: x.due, type: 'money' }, { l: 'المقبوض', v: x.paid, type: 'money' }, { l: 'المتبقي', v: x.remaining, type: 'money' }, { l: 'مصاريف السيارة', v: x.expenses, type: 'money' }, { l: 'صافي الربح', v: x.net, type: 'money', tone: true }, { l: 'الربح الفعلي (المقبوض − المصاريف)', v: x.cash, type: 'money', tone: true }],
+    tables: [
+      { title: 'الأجرة', cols: [{ h: 'البند', w: 3 }, { h: 'المبلغ', type: 'money', w: 1.6 }], rows: priceRows },
+      { title: 'المصروفات', cols: [{ h: 'التاريخ', type: 'date', w: 1.2 }, { h: 'البند', w: 2.4 }, { h: 'التصنيف', w: 1.9 }, { h: 'المبلغ', type: 'money', w: 1.3, sum: true }], rows: x.exps.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(e => [e.date, e.name, e.category, e.amount]), totals: true },
+      { title: 'الدفعات', cols: [{ h: 'التاريخ', type: 'date', w: 1.2 }, { h: 'رقم السند', w: 1.1 }, { h: 'النوع', w: 1.6 }, { h: 'الطريقة', w: 1.6 }, { h: 'المبلغ', type: 'money', w: 1.3, sum: true }], rows: x.pays.map(p => [p.date, p.no || '—', PTYPE[p.type] || '', METH[p.method] || '', p.amount]), totals: true }
+    ],
+    notes: [`صافي الربح = المبلغ المستحق (${money(x.due)}) − إجمالي مصاريف السيارة (${money(x.expenses)}) = ${money(x.net)} ${sym()}`]
+  };
+}
+/* كشف حساب زبون */
+function buildCustomerReport(cu) {
+  const cars = (X.carsByCust.get(cu.id) || []).slice().sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+  const due = sum(cars, c => fin(c).due), paid = sum(cars, c => fin(c).paid);
+  const pays = S.payments.filter(p => cars.some(c => c.id === p.carId)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  return {
+    title: `كشف حساب الزبون: ${cu.name}`, sheet: 'كشف حساب', orient: 'p', subtitle: [cu.phone, cu.address].filter(Boolean).join(' · '),
+    summary: [{ l: 'عدد السيارات', v: cars.length, type: 'int' }, { l: 'إجمالي المستحق', v: due, type: 'money' }, { l: 'إجمالي المقبوض', v: paid, type: 'money' }, { l: 'المتبقي', v: r3(due - paid), type: 'money' }],
+    tables: [
+      { title: 'السيارات', cols: [{ h: 'تاريخ الدخول', type: 'date', w: 1.2 }, { h: 'السيارة', w: 2 }, { h: 'الحالة', w: 1.3 }, { h: 'المستحق', type: 'money', w: 1.2, sum: true }, { h: 'المقبوض', type: 'money', w: 1.2, sum: true }, { h: 'المتبقي', type: 'money', w: 1.2, sum: true }], rows: cars.map(c => { const x = fin(c); return [c.entryDate, carTitle(c) + (c.plate ? ' · ' + LRI(c.plate) : ''), ST[c.status], x.due, x.paid, x.remaining]; }), totals: true },
+      { title: 'الدفعات', cols: [{ h: 'التاريخ', type: 'date', w: 1.2 }, { h: 'رقم السند', w: 1 }, { h: 'السيارة', w: 2.2 }, { h: 'الطريقة', w: 1.4 }, { h: 'المبلغ', type: 'money', w: 1.3, sum: true }], rows: pays.map(p => { const c = X.car.get(p.carId); return [p.date, p.no || '—', c ? carTitle(c) + (c.plate ? ' · ' + LRI(c.plate) : '') : '—', METH[p.method] || '', p.amount]; }), totals: true }
+    ]
+  };
+}
+/* كل البيانات في ملف Excel واحد */
+function buildAllDataReports() {
+  const t = totals();
+  const ps = periodStats('', '');
+  const months = [...new Set([...S.payments.map(p => p.date), ...S.expenses.map(e => e.date)].filter(Boolean).map(d => d.slice(0, 7)))].sort();
+  const monthRows = months.map(m => { const s = periodStats(m + '-01', m + '-31'); return [monthLabel(m), s.inn, s.out, s.cash, s.delivered, s.carsProfit]; });
+  const sel = S.cars.slice().sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+  return [
+    { title: 'ملخص الورشة', sheet: 'ملخص', subtitle: `تاريخ التصدير ${fmtDate(todayISO())}`, summary: [{ l: 'إجمالي الإيرادات (المستحق)', v: t.revenue, type: 'money' }, { l: 'إجمالي المقبوضات', v: t.paid, type: 'money' }, { l: 'إجمالي المصروفات', v: t.expAll, type: 'money' }, { l: 'صافي الأرباح', v: t.net, type: 'money' }, { l: 'المبالغ المستحقة على الزبائن', v: t.receivable, type: 'money' }, { l: 'عدد السيارات', v: S.cars.length, type: 'int' }, { l: 'عدد الزبائن', v: S.customers.length, type: 'int' }], tables: [{ title: 'حسب الشهر', cols: [{ h: 'الشهر' }, { h: 'المقبوض', type: 'money', sum: true }, { h: 'المصروف', type: 'money', sum: true }, { h: 'الصافي النقدي', type: 'money', sum: true }, { h: 'سيارات مسلّمة', type: 'int', sum: true }, { h: 'ربح السيارات المسلّمة', type: 'money', sum: true }], rows: monthRows, totals: true }] },
+    { title: 'السيارات', sheet: 'السيارات', tables: [{ cols: [{ h: 'تاريخ الدخول', type: 'date' }, { h: 'الزبون' }, { h: 'الهاتف' }, { h: 'الشركة' }, { h: 'الموديل' }, { h: 'سنة الصنع' }, { h: 'اللوحة' }, { h: 'اللون' }, { h: 'رقم الشاصي' }, { h: 'العداد (كم)', type: 'int' }, { h: 'الحالة' }, { h: 'تاريخ التسليم', type: 'date' }, { h: 'الأضرار' }, { h: 'أجرة السمكرة', type: 'money', sum: true }, { h: 'أجرة الدهان', type: 'money', sum: true }, { h: 'أعمال إضافية', type: 'money', sum: true }, { h: 'الخصومات', type: 'money', sum: true }, { h: 'المبلغ المستحق', type: 'money', sum: true }, { h: 'المقبوض', type: 'money', sum: true }, { h: 'المتبقي', type: 'money', sum: true }, { h: 'المصاريف', type: 'money', sum: true }, { h: 'صافي الربح', type: 'money', sum: true }], rows: sel.map(c => { const x = fin(c); const cu = X.cust.get(c.customerId) || {}; return [c.entryDate, cu.name || '', cu.phone || '', c.make, c.model, c.year || '', c.plate, c.color, c.chassis, c.odometer || '', ST[c.status], c.status === 'delivered' ? c.deliveredDate : '', c.damage, c.lump ? x.base : r3(c.bodyFee), c.lump ? 0 : r3(c.paintFee), x.extra, x.disc, x.due, x.paid, x.remaining, x.expenses, x.net]; }), totals: true }] },
+    { title: 'الزبائن', sheet: 'الزبائن', tables: [{ cols: [{ h: 'الاسم' }, { h: 'الهاتف' }, { h: 'العنوان' }, { h: 'ملاحظات' }, { h: 'عدد السيارات', type: 'int', sum: true }, { h: 'المستحق', type: 'money', sum: true }, { h: 'المقبوض', type: 'money', sum: true }, { h: 'المتبقي', type: 'money', sum: true }], rows: S.customers.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar')).map(cu => { const cs = X.carsByCust.get(cu.id) || []; const d = sum(cs, c => fin(c).due), p = sum(cs, c => fin(c).paid); return [cu.name, cu.phone, cu.address, cu.notes, cs.length, d, p, r3(d - p)]; }), totals: true }] },
+    { title: 'المصروفات', sheet: 'المصروفات', tables: [{ cols: [{ h: 'التاريخ', type: 'date' }, { h: 'السيارة' }, { h: 'اللوحة' }, { h: 'البند' }, { h: 'التصنيف' }, { h: 'المبلغ', type: 'money', sum: true }, { h: 'ملاحظات' }], rows: S.expenses.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(e => { const c = X.car.get(e.carId); return [e.date, c ? carTitle(c) : 'مصروف عام', c ? c.plate : '', e.name, e.category, e.amount, e.notes]; }), totals: true }] },
+    { title: 'الدفعات', sheet: 'الدفعات', tables: [{ cols: [{ h: 'التاريخ', type: 'date' }, { h: 'رقم السند' }, { h: 'الزبون' }, { h: 'السيارة' }, { h: 'اللوحة' }, { h: 'النوع' }, { h: 'الطريقة' }, { h: 'المبلغ', type: 'money', sum: true }, { h: 'ملاحظات' }], rows: S.payments.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(p => { const c = X.car.get(p.carId); return [p.date, p.no || '', custName(p.customerId || (c && c.customerId)), c ? carTitle(c) : '', c ? c.plate : '', PTYPE[p.type] || '', METH[p.method] || '', p.amount, p.notes]; }), totals: true }] }
+  ];
+}
+
+/* عرض التقرير على الشاشة */
+function repHtml(rep) {
+  let h = '';
+  if (rep.summary && rep.summary.length) {
+    h += `<div class="grid g4">${rep.summary.map(s => `<div class="tile"><span class="label">${esc(s.l)}</span><span class="v">${s.type === 'money' ? cur(s.v, s.tone ? (s.v > 0 ? 'pos' : s.v < 0 ? 'neg' : '') : '') : `<span class="num">${esc(s.v)}</span>`}</span></div>`).join('')}</div>`;
+  }
+  (rep.tables || []).forEach(tb => {
+    const t = tb.totals && tb.rows.length ? tableTotals(tb) : null;
+    h += `${tb.title ? `<h2 class="sec">${esc(tb.title)}</h2>` : ''}<div class="tw"><table class="t"><thead><tr>${tb.cols.map(c => `<th class="${c.type && c.type !== 'text' ? 'n' : ''}">${esc(c.h)}</th>`).join('')}</tr></thead><tbody>`;
+    if (!tb.rows.length) h += `<tr><td colspan="${tb.cols.length}" class="muted" style="text-align:center;padding:26px">لا توجد بيانات في هذه الفترة</td></tr>`;
+    tb.rows.forEach((r, i) => {
+      h += `<tr${tb.links && tb.links[i] ? ` class="clk" data-go="${tb.links[i]}"` : ''}>${r.map((v, j) => {
+        const c = tb.cols[j]; const isN = c.type && c.type !== 'text';
+        const cls = (isN ? 'n ' : '') + (c.tone && typeof v === 'number' ? (v > 0 ? 'pos' : v < 0 ? 'neg' : '') : '') + (typeof v === 'string' && v.startsWith('\u2066') && v.endsWith('\u2069') ? 'nw' : '');
+        return `<td class="${cls}">${esc(cellText(v, c.type))}</td>`;
+      }).join('')}</tr>`;
+    });
+    h += '</tbody>';
+    if (t) { const fi = tb.cols.findIndex(c => !c.sum); h += `<tfoot><tr>${tb.cols.map((c, j) => c.sum ? `<td class="n ${c.tone ? (t[j] > 0 ? 'pos' : t[j] < 0 ? 'neg' : '') : ''}">${esc(cellText(t[j], c.type))}</td>` : `<td>${j === fi ? 'الإجمالي' : ''}</td>`).join('')}</tr></tfoot>`; }
+    h += '</table></div>';
+  });
+  if (rep.notes && rep.notes.length) h += `<div class="note">${rep.notes.map(esc).join('<br>')}</div>`;
+  return h;
+}
+
+/* =============================================================
+   واجهة: رسائل، نوافذ، نماذج
+   ============================================================= */
+const ACT = {};      // معالجات data-act
+const FORMS = {};    // معالجات النماذج
+const MODALS = [];
+const MEMFULL = new Map();
+
+function toast(msg, kind) {
+  const t = document.createElement('div'); t.className = 'toast' + (kind === 'err' ? ' err' : ''); t.textContent = msg;
+  $('#toasts').appendChild(t); setTimeout(() => t.remove(), kind === 'err' ? 5500 : 2800);
+}
+function openModal({ title, body, wide, onMount, onClose }) {
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="sheet${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh-h"><h3>${esc(title)}</h3><button type="button" class="icon-btn" data-act="close" aria-label="إغلاق">${ic('x')}</button></div><div class="sh-b">${body}</div></div>`;
+  $('#layer').appendChild(ov); document.body.classList.add('lock');
+  const m = {
+    el: ov, close() { if (!ov.isConnected) return; ov.remove(); const i = MODALS.indexOf(m); if (i >= 0) MODALS.splice(i, 1); if (!MODALS.length) document.body.classList.remove('lock'); onClose && onClose(); }
+  };
+  MODALS.push(m);
+  ov.addEventListener('mousedown', e => { if (e.target === ov) m.close(); });
+  onMount && onMount(ov, m);
+  setTimeout(() => { if (window.matchMedia('(min-width:700px)').matches) { const f = $('input:not([type=hidden]):not([type=file]):not([type=checkbox]),select,textarea', ov); if (f) f.focus(); } }, 40);
+  return m;
+}
+function closeTop() { const m = MODALS[MODALS.length - 1]; if (m) m.close(); }
+function confirmBox({ title = 'تأكيد', msg, ok = 'تأكيد', danger = false }) {
+  return new Promise(res => {
+    let done = false;
+    const m = openModal({
+      title, body: `<p style="line-height:1.8">${esc(msg)}</p><div class="sh-f"><button type="button" class="btn ${danger ? 'danger' : 'primary'}" data-c="1">${esc(ok)}</button><button type="button" class="btn" data-c="0">إلغاء</button></div>`,
+      onClose: () => { if (!done) { done = true; res(false); } }
+    });
+    m.el.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return; done = true; res(b.dataset.c === '1'); m.close(); });
+  });
+}
+
+/* مساعدات النماذج */
+const fld = (id, label, control, o = {}) => `<div class="f ${o.cls || ''}"${o.attrs ? ' ' + o.attrs : ''}><label for="${id}">${label}${o.req ? ' <i>*</i>' : ''}</label>${control}${o.hint ? `<span class="hint">${o.hint}</span>` : ''}</div>`;
+const inp = (id, v = '', attrs = '') => `<input id="${id}" name="${id}" value="${esc(v)}" ${attrs}>`;
+const selHtml = (id, opts, v, attrs = '') => `<select id="${id}" name="${id}" ${attrs}>${opts.map(o => `<option value="${esc(o.k)}"${o.k === v ? ' selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`;
+const numIn = (id, v, attrs = '') => `<input id="${id}" name="${id}" class="num" inputmode="decimal" autocomplete="off" placeholder="0" value="${v === 0 || v === '' || v == null ? '' : esc(String(v))}" ${attrs}>`;
+const val = (root, id) => { const e = root.querySelector('#' + id); return e ? e.value.trim() : ''; };
+const numVal = (root, id) => parseNum(val(root, id));
+const dateIn = (id, v) => `<input id="${id}" name="${id}" type="date" value="${esc(v || todayISO())}">`;
+
+/* ---------- الصور ---------- */
+async function processImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('تعذر قراءة الصورة')); i.src = url; });
+    const draw = (max, q) => {
+      const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * sc)); c.height = Math.max(1, Math.round(img.naturalHeight * sc));
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', q);
+    };
+    return { full: draw(1280, .74), thumb: draw(280, .7) };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function addPhotos(refType, refId, files, phase) {
+  const out = [];
+  for (const f of Array.from(files || [])) {
+    if (!f.type.startsWith('image/')) continue;
+    try {
+      const { full, thumb } = await processImage(f);
+      const rec = { id: uid(), refType, refId, phase, thumb, createdAt: Date.now(), updatedAt: Date.now() };
+      MEMFULL.set(rec.id, full);
+      try { await IDB.put('photoData', { id: rec.id, full }); await IDB.put('photos', rec); } catch (e) { toast('تعذر حفظ الصورة', 'err'); }
+      S.photos.push(rec); out.push(rec);
+    } catch (e) { toast('تعذر قراءة إحدى الصور (جرّب صيغة JPG أو PNG)', 'err'); }
+  }
+  reindex(); hooks.after();
+  return out;
+}
+async function getFull(id) {
+  if (MEMFULL.has(id)) return MEMFULL.get(id);
+  let d; try { d = await IDB.get('photoData', id); } catch (e) { }
+  const v = d ? d.full : ((S.photos.find(p => p.id === id) || {}).thumb || '');
+  if (v) MEMFULL.set(id, v);
+  return v;
+}
+async function deletePhoto(id) {
+  const i = S.photos.findIndex(p => p.id === id); if (i >= 0) S.photos.splice(i, 1);
+  MEMFULL.delete(id);
+  try { await IDB.del('photos', id); await IDB.del('photoData', id); } catch (e) { }
+  reindex(); hooks.after();
+}
+async function openPhoto(id) {
+  const rec = S.photos.find(p => p.id === id); if (!rec) return;
+  const m = openModal({ title: rec.refType === 'expense' ? 'صورة الفاتورة' : (rec.phase === 'after' ? 'صورة بعد الإصلاح' : 'صورة قبل الإصلاح'), body: `<div class="lbx"><img alt="" src="${esc(rec.thumb)}"><div class="row"><button type="button" class="btn danger sm" data-del>${ic('trash', 16)} حذف الصورة</button></div></div>` });
+  getFull(id).then(v => { const im = $('img', m.el); if (im && v) im.src = v; });
+  $('[data-del]', m.el).onclick = async () => { if (await confirmBox({ title: 'حذف الصورة', msg: 'هل تريد حذف هذه الصورة نهائياً؟', ok: 'حذف', danger: true })) { if (rec.refType === 'expense') { const e = S.expenses.find(x => x.id === rec.refId); if (e && e.photoId === id) { e.photoId = ''; await persist('expenses', e); } } await deletePhoto(id); m.close(); toast('تم حذف الصورة'); } };
+}
+
+/* ---------- الزبائن ---------- */
+function customerFormHtml(cu) {
+  cu = cu || {};
+  return `<form data-form="customer" data-id="${esc(cu.id || '')}" novalidate>
+    <div class="fg">
+      ${fld('cu-name', 'اسم الزبون', inp('cu-name', cu.name, 'autocomplete="off"'), { req: 1, cls: 'full' })}
+      ${fld('cu-phone', 'رقم الهاتف', inp('cu-phone', cu.phone, 'inputmode="tel" class="num" autocomplete="off"'))}
+      ${fld('cu-addr', 'العنوان', inp('cu-addr', cu.address))}
+      ${fld('cu-notes', 'ملاحظات إضافية', `<textarea id="cu-notes" name="cu-notes">${esc(cu.notes || '')}</textarea>`, { cls: 'full' })}
+    </div>
+    <div class="sh-f"><button class="btn primary" type="submit">${ic('check', 18)} حفظ</button><button class="btn" type="button" data-act="close">إلغاء</button></div></form>`;
+}
+function openCustomerForm(id) {
+  const cu = id ? X.cust.get(id) : null;
+  openModal({ title: cu ? 'تعديل بيانات الزبون' : 'زبون جديد', body: customerFormHtml(cu) });
+}
+FORMS.customer = async (form) => {
+  const name = val(form, 'cu-name'); if (!name) return toast('اكتب اسم الزبون', 'err');
+  const id = form.dataset.id;
+  const cu = id ? { ...X.cust.get(id) } : { id: uid(), createdAt: Date.now() };
+  Object.assign(cu, { name, phone: latin(val(form, 'cu-phone')), address: val(form, 'cu-addr'), notes: val(form, 'cu-notes') });
+  await persist('customers', cu);
+  closeTop(); toast(id ? 'تم تحديث بيانات الزبون' : 'تمت إضافة الزبون');
+  if (!id && location.hash === '#customers') go('cust-' + cu.id);
+};
+
+/* ---------- الأجرة ---------- */
+function pricingHtml(p, car) {
+  car = car || {};
+  return `<label class="sw"><input type="checkbox" id="${p}-lump" ${car.lump ? 'checked' : ''}> مبلغ مقطوع متفق عليه (بدون تفصيل السمكرة والدهان)</label>
+    <div class="fg">
+      ${fld(p + '-agreed', 'المبلغ الإجمالي المتفق عليه', numIn(p + '-agreed', car.agreed), { attrs: 'data-p="lump"' })}
+      ${fld(p + '-body', 'أجرة السمكرة', numIn(p + '-body', car.bodyFee), { attrs: 'data-p="split"' })}
+      ${fld(p + '-paint', 'أجرة الدهان', numIn(p + '-paint', car.paintFee), { attrs: 'data-p="split"' })}
+      ${fld(p + '-extra', 'أجرة الأعمال الإضافية', numIn(p + '-extra', car.extraFee))}
+      ${fld(p + '-disc', 'الخصومات', numIn(p + '-disc', car.discount))}
+    </div>
+    <div class="live"><span>المبلغ المستحق على الزبون</span><span><span class="num" id="${p}-due">0</span> <span class="cu">${esc(sym())}</span></span></div>`;
+}
+function wirePricing(root, p) {
+  const calc = () => {
+    const lump = root.querySelector('#' + p + '-lump').checked;
+    root.querySelectorAll('[data-p=lump]').forEach(e => e.hidden = !lump);
+    root.querySelectorAll('[data-p=split]').forEach(e => e.hidden = lump);
+    const g = id => { const n = numVal(root, id); return Number.isFinite(n) ? n : 0; };
+    const base = lump ? g(p + '-agreed') : g(p + '-body') + g(p + '-paint');
+    root.querySelector('#' + p + '-due').textContent = money(r3(base + g(p + '-extra') - g(p + '-disc')));
+  };
+  root.addEventListener('input', e => { if (e.target.id && e.target.id.startsWith(p + '-')) calc(); });
+  root.addEventListener('change', e => { if (e.target.id === p + '-lump') calc(); });
+  calc();
+}
+function readPricing(root, p) {
+  const lump = root.querySelector('#' + p + '-lump').checked;
+  const o = { lump, agreed: numVal(root, p + '-agreed'), bodyFee: numVal(root, p + '-body'), paintFee: numVal(root, p + '-paint'), extraFee: numVal(root, p + '-extra'), discount: numVal(root, p + '-disc') };
+  if (Object.values(o).some(v => typeof v === 'number' && Number.isNaN(v))) return null;
+  if ([o.agreed, o.bodyFee, o.paintFee, o.extraFee, o.discount].some(v => v < 0)) return null;
+  return o;
+}
+function openPricingForm(carId) {
+  const car = X.car.get(carId);
+  openModal({
+    title: 'تعديل الأجرة والخصم', body: `<form data-form="pricing" data-id="${esc(carId)}" novalidate>${pricingHtml('pf', car)}<div class="sh-f"><button class="btn primary" type="submit">${ic('check', 18)} حفظ</button><button class="btn" type="button" data-act="close">إلغاء</button></div></form>`,
+    onMount: ov => wirePricing(ov, 'pf')
+  });
+}
+FORMS.pricing = async (form) => {
+  const pr = readPricing(form, 'pf'); if (!pr) return toast('تحقق من المبالغ: أرقام صحيحة وغير سالبة', 'err');
+  const car = { ...X.car.get(form.dataset.id), ...pr };
+  await persist('cars', car); closeTop(); toast('تم تحديث الأجرة والحسابات');
+};
+
+/* ---------- السيارات ---------- */
+const MAKES = ['تويوتا', 'هيونداي', 'كيا', 'نيسان', 'ميتسوبيشي', 'مازدا', 'هوندا', 'سوزوكي', 'فورد', 'شيفروليه', 'مرسيدس', 'بي إم دبليو', 'أودي', 'فولكسفاغن', 'سكودا', 'بيجو', 'رينو', 'سيتروين', 'أوبل', 'جيب', 'دودج', 'لكزس', 'إنفينيتي', 'سوبارو', 'ميني', 'فولفو', 'تسلا', 'بي واي دي', 'شيري', 'جيلي', 'إم جي', 'سانج يونغ'];
+const COLORS = ['أبيض', 'أسود', 'فضي', 'رمادي', 'أحمر', 'أزرق', 'كحلي', 'أخضر', 'أصفر', 'برتقالي', 'بني', 'ذهبي', 'بيج', 'عنابي', 'شمبانيا', 'أبيض لؤلؤي'];
+function openCarForm(id, custId) {
+  const car = id ? X.car.get(id) : null; const isNew = !car;
+  let picked = car ? car.customerId : (custId || null);
+  const body = `<form data-form="car" data-id="${esc(id || '')}" novalidate>
+    <fieldset class="fs"><legend>الزبون</legend><div id="cf-pick"></div></fieldset>
+    <fieldset class="fs"><legend>بيانات السيارة</legend>
+      <div class="fg">
+        ${fld('cf-make', 'نوع السيارة / الشركة المصنعة', inp('cf-make', car && car.make, 'list="dl-make" autocomplete="off"'), { req: 1 })}
+        ${fld('cf-model', 'الموديل', inp('cf-model', car && car.model, 'autocomplete="off"'))}
+        ${fld('cf-year', 'سنة الصنع', inp('cf-year', car && car.year, 'inputmode="numeric" class="num" maxlength="4" autocomplete="off"'))}
+        ${fld('cf-plate', 'رقم لوحة السيارة', inp('cf-plate', car && car.plate, 'class="num" autocomplete="off"'))}
+        ${fld('cf-color', 'لون السيارة', inp('cf-color', car && car.color, 'list="dl-color" autocomplete="off"'))}
+        ${fld('cf-chassis', 'رقم الشاصي (اختياري)', inp('cf-chassis', car && car.chassis, 'class="num" autocomplete="off"'))}
+        ${fld('cf-odo', 'قراءة عداد الكيلومترات', numIn('cf-odo', car && car.odometer))}
+        ${fld('cf-entry', 'تاريخ دخول الورشة', dateIn('cf-entry', car && car.entryDate))}
+        ${fld('cf-status', 'حالة السيارة', selHtml('cf-status', STATUSES.map(s => ({ k: s.k, t: s.t })), car ? car.status : 'received'))}
+        ${car && car.status === 'delivered' ? fld('cf-deliv', 'تاريخ التسليم', dateIn('cf-deliv', car.deliveredDate)) : ''}
+        ${fld('cf-damage', 'وصف الأعطال والأضرار', `<textarea id="cf-damage" name="cf-damage" placeholder="مثال: صدمة أمامية، تلف الدعامة والرفرف الأيمن، خدوش بالباب الخلفي">${esc(car ? car.damage : '')}</textarea>`, { cls: 'full' })}
+      </div>
+      <datalist id="dl-make">${MAKES.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+      <datalist id="dl-color">${COLORS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+    </fieldset>
+    <fieldset class="fs"><legend>الأجرة المتفق عليها</legend>${pricingHtml('cf', car)}</fieldset>
+    ${isNew ? `<fieldset class="fs"><legend>دفعة مقدمة (اختياري)</legend><div class="fg">
+        ${fld('cf-adv', 'المبلغ المقبوض الآن', numIn('cf-adv', ''))}
+        ${fld('cf-advm', 'طريقة الدفع', selHtml('cf-advm', METHODS, 'cash'))}
+      </div></fieldset>
+      <fieldset class="fs"><legend>صور السيارة قبل الإصلاح</legend>
+        <div class="f"><input id="cf-ph" type="file" accept="image/*" multiple><span class="hint" id="cf-phn">يمكنك التقاط الصور بالكاميرا أو اختيارها من المعرض</span></div>
+      </fieldset>` : ''}
+    <div class="sh-f"><button class="btn primary" type="submit">${ic('check', 18)} ${isNew ? 'حفظ السيارة' : 'حفظ التعديلات'}</button><button class="btn" type="button" data-act="close">إلغاء</button></div>
+  </form>`;
+  openModal({
+    title: isNew ? 'استقبال سيارة جديدة' : 'تعديل بيانات السيارة', body, wide: true,
+    onMount: ov => {
+      wirePricing(ov, 'cf');
+      const area = $('#cf-pick', ov);
+      const renderPick = () => {
+        if (picked && X.cust.get(picked)) {
+          const c = X.cust.get(picked);
+          area.innerHTML = `<div class="picked"><span>${ic('user', 18)} ${esc(c.name)}${c.phone ? ' · <span class="num">' + esc(c.phone) + '</span>' : ''}</span><button type="button" class="btn sm" data-unpick>تغيير</button></div>`;
+          $('[data-unpick]', area).onclick = () => { picked = null; renderPick(); };
+        } else {
+          area.innerHTML = `<div class="fg">${fld('cf-owner', 'اسم صاحب السيارة', inp('cf-owner', '', 'autocomplete="off" placeholder="اكتب الاسم أو ابحث عن زبون سابق"'), { req: 1 })}${fld('cf-phone', 'رقم الهاتف', inp('cf-phone', '', 'inputmode="tel" class="num" autocomplete="off"'))}</div><div id="cf-sugg" class="sugg hide" style="margin-top:10px"></div>`;
+          const sg = $('#cf-sugg', area);
+          const upd = () => {
+            const q = norm(val(area, 'cf-owner')), ph = latin(val(area, 'cf-phone')).replace(/\D/g, '');
+            if (!q && ph.length < 3) { sg.classList.add('hide'); return; }
+            const hits = S.customers.filter(c => (q && norm(c.name).includes(q)) || (ph.length >= 3 && latin(c.phone || '').replace(/\D/g, '').includes(ph))).slice(0, 5);
+            sg.classList.toggle('hide', !hits.length);
+            sg.innerHTML = hits.length ? `<div class="label" style="padding:8px 12px">زبائن مسجلون، اضغط للاختيار:</div>` + hits.map(c => `<button type="button" data-pick="${c.id}"><b>${esc(c.name)}</b><span class="num muted">${esc(c.phone || '')}</span></button>`).join('') : '';
+          };
+          area.addEventListener('input', upd);
+          sg.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b) { picked = b.dataset.pick; renderPick(); } });
+        }
+      };
+      renderPick();
+      ov.addEventListener('change', e => { if (e.target.id === 'cf-ph') $('#cf-phn', ov).textContent = e.target.files.length ? `تم اختيار ${e.target.files.length} صورة` : ''; });
+      ov._getPicked = () => picked;
+    }
+  });
+}
+FORMS.car = async (form) => {
+  const ov = form.closest('.ov'); const id = form.dataset.id; const picked = ov._getPicked ? ov._getPicked() : null;
+  const make = val(form, 'cf-make'); if (!make) return toast('اكتب نوع السيارة', 'err');
+  const owner = picked ? '' : val(form, 'cf-owner'); if (!picked && !owner) return toast('اكتب اسم صاحب السيارة أو اختره من القائمة', 'err');
+  const pr = readPricing(form, 'cf'); if (!pr) return toast('تحقق من مبالغ الأجرة: أرقام صحيحة وغير سالبة', 'err');
+  const odo = numVal(form, 'cf-odo'); if (Number.isNaN(odo) || odo < 0) return toast('قراءة العداد غير صحيحة', 'err');
+  const yr = latin(val(form, 'cf-year')); if (yr && !/^(19|20)\d{2}$/.test(yr)) return toast('سنة الصنع غير صحيحة', 'err');
+  const adv = isNaNum(form, 'cf-adv'); if (adv === null) return toast('مبلغ الدفعة المقدمة غير صحيح', 'err');
+  const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+  try {
+    let customerId = picked;
+    if (!picked) {
+      const ph = latin(val(form, 'cf-phone'));
+      let cu = S.customers.find(c => norm(c.name) === norm(owner) && ph && c.phone === ph);
+      if (!cu) { cu = { id: uid(), createdAt: Date.now(), name: owner, phone: ph, address: '', notes: '' }; await persist('customers', cu); }
+      customerId = cu.id;
+    }
+    const car = id ? { ...X.car.get(id) } : { id: uid(), createdAt: Date.now() };
+    const oldStatus = car.status;
+    Object.assign(car, pr, { customerId, make, model: val(form, 'cf-model'), year: yr, plate: val(form, 'cf-plate'), color: val(form, 'cf-color'), chassis: val(form, 'cf-chassis'), odometer: odo || 0, entryDate: val(form, 'cf-entry') || todayISO(), damage: val(form, 'cf-damage'), status: val(form, 'cf-status') });
+    if (car.status === 'delivered') car.deliveredDate = (form.querySelector('#cf-deliv') ? val(form, 'cf-deliv') : '') || car.deliveredDate || todayISO(); else car.deliveredDate = '';
+    await persist('cars', car);
+    if (!id) {
+      if (adv > 0) await addPayment({ carId: car.id, amount: adv, date: car.entryDate, method: val(form, 'cf-advm') || 'cash', type: 'advance', notes: '' });
+      const files = form.querySelector('#cf-ph') ? form.querySelector('#cf-ph').files : [];
+      if (files.length) { toast('جاري معالجة الصور…'); await addPhotos('car', car.id, files, 'before'); }
+    }
+    closeTop(); toast(id ? 'تم حفظ التعديلات' : 'تم فتح ملف السيارة');
+    go('car-' + car.id);
+  } finally { btn.disabled = false; }
+};
+function isNaNum(root, id) { const e = root.querySelector('#' + id); if (!e) return 0; const n = parseNum(e.value); return Number.isNaN(n) || n < 0 ? null : n; }
+
+/* ---------- المصروفات ---------- */
+function carOptions(selected, withGeneral) {
+  const cars = S.cars.slice().sort((a, b) => (a.status === 'delivered') - (b.status === 'delivered') || (b.entryDate || '').localeCompare(a.entryDate || ''));
+  return (withGeneral ? `<option value=""${!selected ? ' selected' : ''}>— مصروف عام للورشة (غير مرتبط بسيارة) —</option>` : '') + cars.map(c => `<option value="${c.id}"${c.id === selected ? ' selected' : ''}>${esc(carLabel(c))}${c.status === 'delivered' ? ' (مسلّمة)' : ''}</option>`).join('');
+}
+function openExpenseForm({ id, carId } = {}) {
+  const e = id ? S.expenses.find(x => x.id === id) : null;
+  if (!e && !S.cars.length) { toast('أضف سيارة أولاً لتسجيل مصروف عليها', 'err'); return openCarForm(); }
+  const names = [...new Set(S.expenses.map(x => x.name))].slice(0, 60);
+  const sel = e ? e.carId : carId || '';
+  const photo = e && e.photoId ? S.photos.find(p => p.id === e.photoId) : null;
+  openModal({
+    title: e ? 'تعديل المصروف' : 'تسجيل مصروف', body: `<form data-form="expense" data-id="${esc(id || '')}" novalidate>
+      <div class="fg">
+        ${fld('ef-car', 'السيارة', `<select id="ef-car" name="ef-car">${carOptions(sel, true)}</select>`, { cls: 'full' })}
+        ${fld('ef-name', 'اسم المصروف', inp('ef-name', e && e.name, 'list="dl-exp" autocomplete="off" placeholder="مثال: بخاخ بويه، مصدّ أمامي"'), { req: 1 })}
+        ${fld('ef-cat', 'التصنيف', selHtml('ef-cat', CATS.map(c => ({ k: c, t: c })), e ? e.category : CATS[0]), { req: 1 })}
+        ${fld('ef-amt', 'المبلغ', numIn('ef-amt', e && e.amount), { req: 1 })}
+        ${fld('ef-date', 'التاريخ', dateIn('ef-date', e && e.date))}
+        ${fld('ef-notes', 'ملاحظات', `<textarea id="ef-notes" name="ef-notes" style="min-height:64px">${esc(e ? e.notes : '')}</textarea>`, { cls: 'full' })}
+        <div class="f full"><label for="ef-ph">صورة الفاتورة (إن وجدت)</label>${photo ? `<div class="row"><img class="thumb" src="${esc(photo.thumb)}" alt=""><label class="sw"><input type="checkbox" id="ef-rmph"> حذف الصورة الحالية</label></div>` : ''}<input id="ef-ph" type="file" accept="image/*"></div>
+      </div>
+      <datalist id="dl-exp">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      <div class="sh-f"><button class="btn primary" type="submit" data-more="0">${ic('check', 18)} حفظ</button>${e ? '' : `<button class="btn" type="submit" data-more="1">${ic('plus', 18)} حفظ وإضافة مصروف آخر</button>`}<button class="btn" type="button" data-act="close">إلغاء</button></div></form>`
+  });
+}
+FORMS.expense = async (form, ev) => {
+  const more = ev.submitter && ev.submitter.dataset.more === '1';
+  const name = val(form, 'ef-name'); if (!name) return toast('اكتب اسم المصروف', 'err');
+  const amount = numVal(form, 'ef-amt'); if (!(amount > 0)) return toast('اكتب مبلغاً صحيحاً أكبر من صفر', 'err');
+  const id = form.dataset.id; const old = id ? S.expenses.find(x => x.id === id) : null;
+  const ex = old ? { ...old } : { id: uid(), createdAt: Date.now() };
+  Object.assign(ex, { carId: val(form, 'ef-car'), name, category: val(form, 'ef-cat'), amount: r3(amount), date: val(form, 'ef-date') || todayISO(), notes: val(form, 'ef-notes') });
+  const file = form.querySelector('#ef-ph').files[0];
+  const rm = form.querySelector('#ef-rmph') && form.querySelector('#ef-rmph').checked;
+  if (more) { form.querySelector('#ef-name').value = ''; form.querySelector('#ef-amt').value = ''; form.querySelector('#ef-notes').value = ''; form.querySelector('#ef-ph').value = ''; form.querySelector('#ef-name').focus(); }
+  if ((rm || file) && ex.photoId) { await deletePhoto(ex.photoId); ex.photoId = ''; }
+  if (file) { const r = await addPhotos('expense', ex.id, [file], 'invoice'); if (r[0]) ex.photoId = r[0].id; }
+  await persist('expenses', ex);
+  if (more) toast('تم حفظ المصروف، أضف التالي');
+  else { closeTop(); toast(id ? 'تم تحديث المصروف' : 'تم تسجيل المصروف'); }
+};
+
+/* ---------- الدفعات ---------- */
+async function addPayment(d) {
+  const car = X.car.get(d.carId);
+  const p = { id: uid(), createdAt: Date.now(), customerId: car ? car.customerId : '', no: S.settings.receiptNo, notes: '', ...d, amount: r3(d.amount) };
+  S.settings.receiptNo = p.no + 1; await saveSettings();
+  await persist('payments', p);
+  return p;
+}
+function payCarOptions(selected) {
+  const cars = S.cars.slice().sort((a, b) => (fin(b).remaining > 0) - (fin(a).remaining > 0) || (b.entryDate || '').localeCompare(a.entryDate || ''));
+  return cars.map(c => { const r = fin(c).remaining; return `<option value="${c.id}"${c.id === selected ? ' selected' : ''}>${esc(carLabel(c))}${r > 0 ? ' — متبقي ' + money(r) : ''}</option>`; }).join('');
+}
+function openPaymentForm({ id, carId } = {}) {
+  const p = id ? S.payments.find(x => x.id === id) : null;
+  if (!p && !S.cars.length) { toast('أضف سيارة أولاً لتسجيل دفعة عليها', 'err'); return openCarForm(); }
+  const sel = p ? p.carId : carId || (S.cars.filter(c => fin(c).remaining > 0)[0] || S.cars[0] || {}).id;
+  openModal({
+    title: p ? 'تعديل الدفعة' : 'تسجيل دفعة', body: `<form data-form="payment" data-id="${esc(id || '')}" novalidate>
+      <div class="fg">
+        ${fld('pf-car', 'السيارة / الزبون', `<select id="pf-car" name="pf-car">${payCarOptions(sel)}</select>`, { cls: 'full' })}
+        <div class="full tiles-mini" id="pf-info"></div>
+        ${fld('pf-amt', 'المبلغ المقبوض', numIn('pf-amt', p && p.amount), { req: 1 })}
+        ${fld('pf-date', 'التاريخ', dateIn('pf-date', p && p.date))}
+        ${fld('pf-method', 'طريقة الدفع', selHtml('pf-method', METHODS, p ? p.method : 'cash'))}
+        ${fld('pf-type', 'نوع الدفعة', selHtml('pf-type', PTYPES, p ? p.type : 'partial'))}
+        ${fld('pf-notes', 'ملاحظات', `<textarea id="pf-notes" name="pf-notes" style="min-height:64px">${esc(p ? p.notes : '')}</textarea>`, { cls: 'full' })}
+      </div>
+      <div class="live" id="pf-after"><span>المتبقي بعد هذه الدفعة</span><span><span class="num">0</span></span></div>
+      <div class="sh-f"><button class="btn primary" type="submit">${ic('check', 18)} حفظ ${p ? '' : 'وعرض السند'}</button><button class="btn" type="button" data-act="close">إلغاء</button></div></form>`,
+    onMount: ov => {
+      let typeTouched = !!p;
+      const info = $('#pf-info', ov), after = $('#pf-after .num', ov);
+      const state = () => {
+        const car = X.car.get(val(ov, 'pf-car')); const f = car ? fin(car) : { due: 0, paid: 0, remaining: 0, pays: [] };
+        const mine = p ? (f.pays.find(x => x.id === p.id) || { amount: 0 }).amount : 0;
+        return { car, f, paidOther: r3(f.paid - mine), remOther: r3(f.due - (f.paid - mine)), others: f.pays.filter(x => !p || x.id !== p.id).length };
+      };
+      const calc = () => {
+        const s = state(); const a = numVal(ov, 'pf-amt'); const amt = Number.isFinite(a) ? a : 0;
+        info.innerHTML = `<div class="grid g3"><div class="tile"><span class="label">المستحق</span><span class="v">${cur(s.f.due)}</span></div><div class="tile"><span class="label">المقبوض سابقاً</span><span class="v">${cur(s.paidOther)}</span></div><div class="tile"><span class="label">المتبقي</span><span class="v">${cur(s.remOther)}</span></div></div>
+          <div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-fill>تعبئة المتبقي كاملاً</button></div>`;
+        const left = r3(s.remOther - amt); after.textContent = money(left); after.className = 'num ' + (left < 0 ? 'neg' : left === 0 ? 'pos' : '');
+        $('#pf-after', ov).querySelector('span').textContent = left < 0 ? 'زيادة عن المطلوب (رصيد للزبون)' : 'المتبقي بعد هذه الدفعة';
+        if (!typeTouched && amt > 0) $('#pf-type', ov).value = amt >= s.remOther && s.remOther > 0 ? 'final' : (s.others === 0 ? 'advance' : 'partial');
+      };
+      ov.addEventListener('input', e => { if (e.target.id === 'pf-amt') calc(); });
+      ov.addEventListener('change', e => { if (e.target.id === 'pf-car') calc(); if (e.target.id === 'pf-type') typeTouched = true; });
+      ov.addEventListener('click', e => { if (e.target.closest('[data-fill]')) { const s = state(); $('#pf-amt', ov).value = s.remOther > 0 ? String(s.remOther) : ''; $('#pf-type', ov).value = 'final'; typeTouched = false; calc(); } });
+      calc();
+    }
+  });
+}
+FORMS.payment = async (form) => {
+  const carId = val(form, 'pf-car'); if (!carId) return toast('اختر السيارة', 'err');
+  const amount = numVal(form, 'pf-amt'); if (!(amount > 0)) return toast('اكتب مبلغاً صحيحاً أكبر من صفر', 'err');
+  const id = form.dataset.id; const car = X.car.get(carId);
+  const data = { carId, customerId: car.customerId, amount: r3(amount), date: val(form, 'pf-date') || todayISO(), method: val(form, 'pf-method'), type: val(form, 'pf-type'), notes: val(form, 'pf-notes') };
+  let p;
+  if (id) { p = { ...S.payments.find(x => x.id === id), ...data }; await persist('payments', p); closeTop(); toast('تم تحديث الدفعة'); }
+  else { p = await addPayment(data); closeTop(); toast('تم تسجيل الدفعة'); openReceipt(p.id); }
+};
+
+/* ---------- سند القبض ---------- */
+async function openReceipt(payId) {
+  const p = S.payments.find(x => x.id === payId); if (!p) return;
+  let canvas = null;
+  const m = openModal({
+    title: `سند قبض رقم ${p.no || ''}`, wide: true, body: `<div id="rc-img" class="empty">جاري تجهيز السند…</div>
+    <div class="sh-f"><button type="button" class="btn primary" data-r="pdf">${ic('file', 18)} حفظ PDF</button><button type="button" class="btn" data-r="png">${ic('image', 18)} حفظ كصورة</button><button type="button" class="btn" data-r="copy">${ic('copy', 18)} نسخ النص (واتساب)</button></div>`
+  });
+  try {
+    canvas = await drawReceipt(p);
+    const box = $('#rc-img', m.el); if (box) { box.className = ''; box.innerHTML = `<img alt="سند قبض" src="${canvas.toDataURL('image/png')}" style="width:100%;border-radius:8px;border:1px solid var(--ln2)">`; }
+  } catch (e) { const box = $('#rc-img', m.el); if (box) box.textContent = 'تعذر رسم السند'; }
+  m.el.addEventListener('click', async e => {
+    const b = e.target.closest('[data-r]'); if (!b || !canvas) return;
+    const nm = `سند-قبض-${p.no || ''}`;
+    if (b.dataset.r === 'pdf') await deliver(nm + '.pdf', await canvasesToPdf([canvas]), 'سند القبض PDF');
+    else if (b.dataset.r === 'png') { const blob = await new Promise(r => canvas.toBlob(r, 'image/png')); await deliver(nm + '.png', blob, 'صورة السند'); }
+    else { try { await navigator.clipboard.writeText(receiptText(p)); toast('تم نسخ نص السند'); } catch (err) { prompt0(receiptText(p)); } }
+  });
+}
+function prompt0(text) {
+  openModal({ title: 'انسخ النص', body: `<textarea class="in" style="min-height:220px;width:100%" readonly onfocus="this.select()">${esc(text)}</textarea>` });
+}
+
+/* ---------- إضافة سريعة ---------- */
+function openQuick() {
+  openModal({
+    title: 'إضافة سريعة', body: `<div class="qa">
+    <button class="btn primary" data-act="new-car">${ic('car', 26)} استقبال سيارة جديدة</button>
+    <button class="btn" data-act="new-exp">${ic('wallet', 26)} تسجيل مصروف</button>
+    <button class="btn" data-act="new-pay">${ic('receipt', 26)} تسجيل دفعة وسند قبض</button>
+    <button class="btn" data-act="new-cust">${ic('user', 26)} زبون جديد</button></div>`
+  });
+}
+
+/* =============================================================
+   النسخ الاحتياطي والاستعادة
+   ============================================================= */
+async function backupObject(withPhotos = true) {
+  const photos = [];
+  if (withPhotos) for (const p of S.photos) { const full = await getFull(p.id); photos.push({ ...p, full: full || p.thumb }); }
+  return { app: 'car-workshop-manager', v: 1, exportedAt: new Date().toISOString(), settings: S.settings, customers: S.customers, cars: S.cars, expenses: S.expenses, payments: S.payments, photos };
+}
+async function doBackup() {
+  try {
+    const obj = await backupObject(true);
+    const ok = await deliver(`نسخة-احتياطية-الورشة-${fileStamp()}.json`, new Blob([JSON.stringify(obj)], { type: 'application/json' }), 'النسخة الاحتياطية');
+    if (ok) { S.settings.lastBackup = new Date().toISOString(); await saveSettings(); render(); }
+  } catch (e) { toast('تعذر إنشاء النسخة الاحتياطية: ' + (e && e.message || e), 'err'); }
+}
+function validBackup(o) { return o && o.app === 'car-workshop-manager' && ['customers', 'cars', 'expenses', 'payments'].every(k => Array.isArray(o[k])); }
+async function applyBackup(o, keepPhotosIfMissing) {
+  const photosIn = Array.isArray(o.photos) ? o.photos : [];
+  for (const s of ['customers', 'cars', 'expenses', 'payments']) await IDB.clear(s);
+  if (!keepPhotosIfMissing) { await IDB.clear('photos'); await IDB.clear('photoData'); MEMFULL.clear(); }
+  S.customers = o.customers; S.cars = o.cars; S.expenses = o.expenses; S.payments = o.payments;
+  if (!keepPhotosIfMissing) {
+    S.photos = photosIn.map(p => { const { full, ...meta } = p; if (full) MEMFULL.set(p.id, full); return meta; });
+    await IDB.putMany('photos', S.photos);
+    await IDB.putMany('photoData', photosIn.filter(p => p.full).map(p => ({ id: p.id, full: p.full })));
+  }
+  await IDB.putMany('customers', S.customers); await IDB.putMany('cars', S.cars); await IDB.putMany('expenses', S.expenses); await IDB.putMany('payments', S.payments);
+  S.settings = Object.assign({}, DEFAULTS, o.settings || {}, { lastBackup: S.settings.lastBackup });
+  const maxNo = S.payments.reduce((a, p) => Math.max(a, p.no || 0), 0); if (S.settings.receiptNo <= maxNo) S.settings.receiptNo = maxNo + 1;
+  await IDB.put('meta', { key: 'settings', value: S.settings });
+  reindex(); render();
+}
+async function restoreFromFile(file) {
+  let o; try { o = JSON.parse(await file.text()); } catch (e) { return toast('الملف ليس نسخة احتياطية صالحة', 'err'); }
+  if (!validBackup(o)) return toast('هذا الملف ليس نسخة احتياطية من هذا التطبيق', 'err');
+  const msg = `سيتم استبدال كل البيانات الحالية (${S.cars.length} سيارة، ${S.customers.length} زبون) ببيانات النسخة (${o.cars.length} سيارة، ${o.customers.length} زبون، تاريخ النسخة ${fmtDate(String(o.exportedAt || '').slice(0, 10))}). هل تريد المتابعة؟`;
+  if (!await confirmBox({ title: 'استعادة نسخة احتياطية', msg, ok: 'استبدال واستعادة', danger: true })) return;
+  try { await applyBackup(o, false); toast('تمت استعادة البيانات بنجاح'); go('dashboard'); } catch (e) { toast('فشلت الاستعادة: ' + (e && e.message || e), 'err'); }
+}
+
+/* النسخة السحابية (اختيارية) — بدون الصور */
+const CHUNK = 70000;
+async function cloudDb() { try { return (window.claude && window.claude.use) ? await window.claude.use('db') : null; } catch (e) { return null; } }
+async function cloudSave() {
+  const db = await cloudDb(); if (!db) throw new Error('الحفظ السحابي غير متاح في هذا العرض');
+  const json = JSON.stringify(await backupObject(false));
+  const parts = []; for (let i = 0; i < json.length; i += CHUNK) parts.push(json.slice(i, i + CHUNK));
+  const col = db.collection('cloudbackup');
+  const meta = await col.doc('meta').get(); const oldN = meta.exists ? (meta.data().parts || 0) : 0;
+  for (let i = 0; i < parts.length; i++) await col.doc('p' + i).set({ i, data: parts[i] });
+  await col.doc('meta').set({ parts: parts.length, savedAt: new Date().toISOString(), cars: S.cars.length, customers: S.customers.length, payments: S.payments.length, expenses: S.expenses.length });
+  for (let i = parts.length; i < oldN; i++) await col.doc('p' + i).delete();
+  S.settings.cloudAt = new Date().toISOString(); await saveSettings();
+}
+async function cloudRestore() {
+  const db = await cloudDb(); if (!db) throw new Error('الحفظ السحابي غير متاح في هذا العرض');
+  const col = db.collection('cloudbackup'); const meta = await col.doc('meta').get();
+  if (!meta.exists) throw new Error('لا توجد نسخة سحابية محفوظة بعد');
+  const n = meta.data().parts; let json = '';
+  for (let i = 0; i < n; i++) { const d = await col.doc('p' + i).get(); if (!d.exists) throw new Error('النسخة السحابية غير مكتملة'); json += d.data().data; }
+  const o = JSON.parse(json); if (!validBackup(o)) throw new Error('النسخة السحابية تالفة');
+  return o;
+}
+const cloudSchedule = debounce(async () => { if (!S.settings.cloudAuto) return; try { await cloudSave(); } catch (e) { } if (location.hash === '#config') render(); }, 15000);
+
+/* =============================================================
+   الصفحات
+   ============================================================= */
+const statusPill = k => `<span class="pill st-${k}">${esc(ST[k] || k)}</span>`;
+const plateChip = (c, cls = '') => c.plate ? `<span class="plate ${cls}">${esc(c.plate)}</span>` : `<span class="plate none ${cls}">بدون لوحة</span>`;
+const dotHtml = c => { const col = colorDot(c.color); return col ? `<span class="dot" style="background:${col}" title="${esc(c.color)}"></span>` : ''; };
+const tile = (label, v, sub, cls = '') => `<div class="tile ${cls}"><span class="label">${label}</span><span class="v">${v}</span>${sub ? `<span class="s">${sub}</span>` : ''}</div>`;
+const plain = n => `<span class="num">${n}</span>`;
+const emptyBox = (title, text, btn) => `<div class="empty">${ic('car', 40)}<b>${title}</b><span>${text}</span>${btn || ''}</div>`;
+function periodRange(mode) {
+  const d = new Date(), y = d.getFullYear(), m = pad(d.getMonth() + 1);
+  if (mode === 'day') { const t = todayISO(); return [t, t, fmtDate(t)]; }
+  if (mode === 'month') return [`${y}-${m}-01`, `${y}-${m}-31`, MONTHS[d.getMonth()] + ' ' + y];
+  return [`${y}-01-01`, `${y}-12-31`, String(y)];
+}
+function jobCard(c) {
+  const x = fin(c); const days = c.status === 'delivered' ? null : dayDiff(c.entryDate);
+  return `<button type="button" class="job" data-go="car-${c.id}">
+    <div class="job-h">${plateChip(c)}${statusPill(c.status)}</div>
+    <div><div class="job-t">${esc(carTitle(c))} ${dotHtml(c)}</div><div class="job-s">${esc(custName(c.customerId))} · ${fmtDate(c.entryDate)}${days !== null && days >= 0 ? (days === 0 ? ' · دخلت اليوم' : days === 1 ? ' · منذ يوم' : ` · منذ ${days} يوم`) : ''}</div></div>
+    <div class="job-f"><div><span class="label">المستحق</span>${cur(x.due)}</div><div><span class="label">المتبقي</span>${cur(x.remaining, x.remaining > 0 ? 'neg' : '')}</div><div><span class="label">صافي الربح</span>${curTone(x.net)}</div></div></button>`;
+}
+function custCard(cu) {
+  const cs = X.carsByCust.get(cu.id) || []; const due = sum(cs, c => fin(c).due), paid = sum(cs, c => fin(c).paid), rem = r3(due - paid);
+  return `<button type="button" class="job" data-go="cust-${cu.id}">
+    <div class="job-h"><span class="job-t">${esc(cu.name)}</span><span class="pill" style="--pc:var(--info)">${cs.length} ${cs.length === 1 ? 'سيارة' : 'سيارات'}</span></div>
+    <div class="job-s"><span class="num">${esc(cu.phone || 'بدون هاتف')}</span>${cu.address ? ' · ' + esc(cu.address) : ''}</div>
+    <div class="job-f"><div><span class="label">المستحق</span>${cur(due)}</div><div><span class="label">المقبوض</span>${cur(paid)}</div><div><span class="label">المتبقي</span>${cur(rem, rem > 0 ? 'neg' : '')}</div></div></button>`;
+}
+
+/* ---------- لوحة التحكم ---------- */
+function backupBanner() {
+  if (UI.storage === 'none') return `<div class="banner bad">${ic('alert', 22)}<div class="grow"><b>التخزين المحلي غير متاح في هذا العرض.</b><br><span class="note">ستبقى البيانات طوال فتح الصفحة فقط. احفظ نسخة احتياطية قبل الإغلاق.</span></div><button class="btn sm" data-act="backup">${ic('download', 16)} نسخة احتياطية الآن</button></div>`;
+  if (!S.cars.length && !S.customers.length) return '';
+  const last = S.settings.lastBackup; const d = last ? dayDiff(last.slice(0, 10)) : null;
+  if (d !== null && d < 7) return '';
+  return `<div class="banner">${ic('db', 22)}<div class="grow"><b>${d === null ? 'لم تأخذ نسخة احتياطية بعد.' : `آخر نسخة احتياطية قبل ${d} يوماً.`}</b><br><span class="note">النسخة الاحتياطية تحميك من فقدان البيانات إذا مُسح متصفح الجهاز أو تغيّر الهاتف.</span></div><button class="btn primary sm" data-act="backup">${ic('download', 16)} نسخة احتياطية الآن</button></div>`;
+}
+function viewDashboard() {
+  const t = totals(); const cars = S.cars;
+  const cnt = k => cars.filter(c => c.status === k).length;
+  const inShop = cars.filter(c => c.status !== 'delivered').length;
+  const debtors = new Set(cars.filter(c => fin(c).remaining > 0).map(c => c.customerId)).size;
+  const [pf, pt, plabel] = periodRange(UI.dashPeriod); const ps = periodStats(pf, pt);
+  let h = `<div class="ph"><div><h1>لوحة التحكم</h1><p>${esc(S.settings.workshop || 'كل دينار يدخل ويخرج من الورشة في مكان واحد')}</p></div></div>`;
+  h += `<div class="row" style="gap:12px"><button class="btn primary xl" data-act="new-car">${ic('car', 24)} سيارة جديدة</button><button class="btn xl" data-act="new-exp">${ic('wallet', 24)} مصروف</button><button class="btn xl" data-act="new-pay">${ic('receipt', 24)} دفعة</button></div>`;
+  h += backupBanner();
+  if (!cars.length && !S.expenses.length) {
+    return h + `<div class="card">${emptyBox('ابدأ بأول سيارة تدخل الورشة', 'سجّل السيارة وبيانات صاحبها، ثم أضف المصروفات والدفعات وسيحسب التطبيق الأرباح تلقائياً.', `<button class="btn primary" data-act="new-car">${ic('plus', 18)} استقبال سيارة جديدة</button>`)}</div>`;
+  }
+  h += `<div class="grid g4">
+    ${tile('صافي الأرباح', curTone(t.net), `الإيرادات − المصروفات · نقدياً (المقبوض − المصروف): <span class="num ${t.cash < 0 ? 'neg' : ''}">${money(t.cash)}</span> ${esc(sym())}`, 'hero')}
+    ${tile('إجمالي الإيرادات', cur(t.revenue), `المقبوض منها ${money(t.paid)} ${esc(sym())}`)}
+    ${tile('إجمالي المصروفات', cur(t.expAll), t.general > 0 ? `منها مصاريف عامة ${money(t.general)} ${esc(sym())}` : 'على كل السيارات')}
+  </div>`;
+  h += `<div class="grid gfit">
+    <button type="button" class="tile" data-cf="debt"><span class="label">المستحق على الزبائن</span><span class="v">${cur(t.receivable, t.receivable > 0 ? 'neg' : '')}</span><span class="s">${debtors} ${debtors === 1 ? 'زبون' : 'زبائن'}</span></button>
+    <button type="button" class="tile" data-cf="inshop"><span class="label">داخل الورشة</span><span class="v">${plain(inShop)}</span><span class="s">سيارة</span></button>
+    <button type="button" class="tile" data-cf="working"><span class="label">قيد الإصلاح</span><span class="v">${plain(cnt('working'))}</span><span class="s">بانتظار القطع: ${cnt('parts')}</span></button>
+    <button type="button" class="tile" data-cf="received"><span class="label">مستلمة حديثاً</span><span class="v">${plain(cnt('received'))}</span><span class="s">جاهزة للتسليم: ${cnt('ready')}</span></button>
+    <button type="button" class="tile" data-cf="delivered"><span class="label">تم تسليمها</span><span class="v">${plain(cnt('delivered'))}</span><span class="s">سيارة</span></button>
+  </div>`;
+  h += `<div class="card"><div class="card-h"><h2 class="sec">ملخص الأرباح <small>${esc(plabel)}</small></h2>
+    <div class="seg" role="group" aria-label="الفترة">${[['day', 'اليوم'], ['month', 'الشهر'], ['year', 'السنة']].map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${UI.dashPeriod === k}">${l}</button>`).join('')}</div></div>
+    <div class="grid gfit">${tile('المقبوض', cur(ps.inn))}${tile('المصروف', cur(ps.out))}${tile('الصافي النقدي', curTone(ps.cash))}${tile('سيارات مسلّمة', plain(ps.delivered))}${tile('ربح السيارات المسلّمة', curTone(ps.carsProfit))}</div>
+    <p class="note" style="margin-top:10px">الصافي النقدي = المقبوض − المصروف خلال الفترة. ربح السيارات المسلّمة = المستحق − مصاريف كل سيارة سُلّمت في الفترة.</p></div>`;
+  h += `<div class="card"><div class="card-h"><h2 class="sec">الإيرادات والمصروفات والأرباح <small>شهرياً (نقدي)</small></h2><div class="ctl">
+    <div class="seg" role="group" aria-label="عدد الأشهر">${[6, 12].map(n => `<button type="button" data-cn="${n}" aria-pressed="${UI.chartN === n}">${n === 6 ? '6 أشهر' : '12 شهراً'}</button>`).join('')}</div>
+    <button type="button" class="btn sm" data-act="chart-table">${ic('table', 16)} ${UI.chartTable ? 'عرض الرسم' : 'عرض كجدول'}</button></div></div>
+    <div class="legend"><span><i style="background:var(--c-rev)"></i>المقبوضات</span><span><i style="background:var(--c-exp)"></i>المصروفات</span><span><i class="ln" style="background:var(--c-net)"></i>الصافي</span></div>
+    <div id="chart"></div></div>`;
+  const shop = cars.filter(c => c.status !== 'delivered').sort((a, b) => (a.entryDate || '').localeCompare(b.entryDate || ''));
+  const dmap = new Map(); cars.forEach(c => { const r = fin(c).remaining; if (r > 0) dmap.set(c.customerId, r3((dmap.get(c.customerId) || 0) + r)); });
+  const top = [...dmap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  h += `<div class="two"><div class="grid" style="gap:12px"><div class="card-h" style="margin:0"><h2 class="sec">السيارات داخل الورشة <small>${shop.length}</small></h2>${shop.length > 6 ? `<button class="btn sm" data-cf="inshop">عرض الكل</button>` : ''}</div>
+    ${shop.length ? `<div class="grid gauto" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${shop.slice(0, 6).map(jobCard).join('')}</div>` : `<div class="card">${emptyBox('لا توجد سيارات داخل الورشة', 'كل السيارات تم تسليمها.')}</div>`}</div>
+    <div class="grid" style="gap:12px"><h2 class="sec">أكبر المبالغ المستحقة</h2><div class="card flat">${top.length ? top.map(([id, r]) => `<button type="button" class="lrow" data-go="cust-${id}"><span class="t">${esc(custName(id))}</span>${cur(r, 'neg')}</button>`).join('') : `<div class="empty">لا توجد ديون مستحقة</div>`}</div></div></div>`;
+  return h;
+}
+
+/* الرسم البياني (SVG حسب عرض الشاشة) */
+function niceScale(min, max, n = 4) {
+  if (max === min) max = min + 1;
+  const step0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), nm = step0 / mag;
+  const step = (nm <= 1 ? 1 : nm <= 2 ? 2 : nm <= 2.5 ? 2.5 : nm <= 5 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, ticks = [];
+  for (let v = lo; v <= hi + step / 2; v += step) ticks.push(Math.round(v / step) * step);
+  return { lo, hi, ticks };
+}
+const kfmt = v => Math.abs(v) >= 1000 ? (Math.round(v / 100) / 10) + 'k' : String(Math.round(v * 100) / 100);
+function chartData() {
+  return monthKeysBack(UI.chartN).map(k => { const s = periodStats(k + '-01', k + '-31'); return { k, inn: s.inn, out: s.out, net: s.cash }; });
+}
+function drawChart() {
+  const box = $('#chart'); if (!box) return;
+  const data = chartData();
+  if (UI.chartTable) {
+    box.innerHTML = `<div class="tw"><table class="t"><thead><tr><th>الشهر</th><th class="n">المقبوضات</th><th class="n">المصروفات</th><th class="n">الصافي</th></tr></thead><tbody>${data.slice().reverse().map(d => `<tr><td>${monthLabel(d.k)}</td><td class="n">${money(d.inn)}</td><td class="n">${money(d.out)}</td><td class="n ${d.net > 0 ? 'pos' : d.net < 0 ? 'neg' : ''}">${money(d.net)}</td></tr>`).join('')}</tbody></table></div>`;
+    return;
+  }
+  const W = Math.max(280, box.clientWidth || 320), H = 260, ml = 46, mr = 8, mt = 12, mb = 30, pw = W - ml - mr, ph = H - mt - mb;
+  const maxV = Math.max(0, ...data.map(d => Math.max(d.inn, d.out, d.net))), minV = Math.min(0, ...data.map(d => d.net));
+  const sc = niceScale(minV, maxV === 0 && minV === 0 ? 1 : maxV);
+  const Y = v => mt + ph - (v - sc.lo) / (sc.hi - sc.lo) * ph, y0 = Y(0);
+  const gw = pw / data.length, bw = Math.min(22, gw * .3);
+  const X0 = i => ml + pw - (i + .5) * gw; // RTL: أقدم شهر على اليمين
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="رسم بياني شهري للمقبوضات والمصروفات والصافي">`;
+  sc.ticks.forEach(v => { const y = Y(v); s += `<line x1="${ml}" x2="${W - mr}" y1="${y}" y2="${y}" stroke="var(--ln)" stroke-width="1"${v === 0 ? ' stroke-opacity="1" style="stroke:var(--ln2)"' : ' stroke-dasharray="3 4"'}/><text class="ax" x="${ml - 8}" y="${y + 4}" text-anchor="end">${kfmt(v)}</text>`; });
+  const bar = (cx, v, color) => {
+    if (v <= 0) return ''; const h = y0 - Y(v), r = Math.min(4, h / 2), x = cx - bw / 2;
+    return `<path d="M${x},${y0} V${Y(v) + r} Q${x},${Y(v)} ${x + r},${Y(v)} H${x + bw - r} Q${x + bw},${Y(v)} ${x + bw},${Y(v) + r} V${y0} Z" fill="${color}"/>`;
+  };
+  data.forEach((d, i) => {
+    const cx = X0(i); s += bar(cx + bw / 2 + 1, d.inn, 'var(--c-rev)') + bar(cx - bw / 2 - 1, d.out, 'var(--c-exp)');
+    const [, m] = d.k.split('-'); s += `<text class="ax" x="${cx}" y="${H - 10}" text-anchor="middle">${MONTHS_S[+m - 1]}</text>`;
+  });
+  const pts = data.map((d, i) => `${X0(i)},${Y(d.net)}`).join(' ');
+  s += `<polyline points="${pts}" fill="none" stroke="var(--c-net)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  data.forEach((d, i) => { const last = i === data.length - 1; s += `<circle cx="${X0(i)}" cy="${Y(d.net)}" r="${last ? 5 : 3.5}" fill="${last ? 'var(--c-net)' : 'var(--sf)'}" stroke="var(--c-net)" stroke-width="2"/>`; });
+  s += `<g id="hl" style="display:none"><rect id="hlr" y="${mt}" height="${ph}" width="${gw}" fill="var(--c-net)" fill-opacity=".07"/></g></svg><div class="tip hide" id="tip"></div>`;
+  box.innerHTML = s;
+  const tip = $('#tip', box), hl = $('#hl', box), hlr = $('#hlr', box);
+  const show = e => {
+    const r = box.getBoundingClientRect(); const px = e.clientX - r.left; let i = Math.floor((ml + pw - px) / gw); if (i < 0 || i >= data.length) return hide();
+    const d = data[i]; hl.style.display = ''; hlr.setAttribute('x', X0(i) - gw / 2);
+    tip.classList.remove('hide'); tip.innerHTML = `<b>${monthLabel(d.k)}</b><div><span>المقبوضات</span><span class="num">${money(d.inn)}</span></div><div><span>المصروفات</span><span class="num">${money(d.out)}</span></div><div><span>الصافي</span><span class="num ${d.net < 0 ? 'neg' : 'pos'}">${money(d.net)}</span></div>`;
+    const tw_ = tip.offsetWidth; let left = px - tw_ / 2; left = Math.max(0, Math.min(W - tw_, left)); tip.style.left = left + 'px'; tip.style.top = '0px';
+  };
+  const hide = () => { tip.classList.add('hide'); hl.style.display = 'none'; };
+  box.addEventListener('pointermove', show); box.addEventListener('pointerdown', show); box.addEventListener('pointerleave', hide);
+}
+
+/* ---------- السيارات ---------- */
+function carsFiltered() {
+  let list = S.cars.slice();
+  const f = UI.carF;
+  if (f === 'inshop') list = list.filter(c => c.status !== 'delivered');
+  else if (f === 'debt') list = list.filter(c => fin(c).remaining > 0);
+  else if (f !== 'all') list = list.filter(c => c.status === f);
+  const q = norm(UI.carQ).trim(), qp = normPlate(UI.carQ);
+  if (q) list = list.filter(c => norm([c.make, c.model, c.color, custName(c.customerId), (X.cust.get(c.customerId) || {}).phone].join(' ')).includes(q) || (qp && normPlate(c.plate || '').includes(qp)) || latin((X.cust.get(c.customerId) || {}).phone || '').replace(/\D/g, '').includes(latin(UI.carQ).replace(/\D/g, '') || '§'));
+  return list.sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || '') || b.createdAt - a.createdAt);
+}
+function carListHtml() {
+  const list = carsFiltered();
+  if (!list.length) return `<div class="card">${emptyBox(S.cars.length ? 'لا توجد نتائج' : 'لا توجد سيارات بعد', S.cars.length ? 'غيّر الفلتر أو كلمة البحث.' : 'ابدأ باستقبال أول سيارة في الورشة.', S.cars.length ? '' : `<button class="btn primary" data-act="new-car">${ic('plus', 18)} سيارة جديدة</button>`)}</div>`;
+  return `<div class="grid gauto">${list.map(jobCard).join('')}</div>`;
+}
+function viewCars() {
+  const cnt = k => k === 'all' ? S.cars.length : k === 'inshop' ? S.cars.filter(c => c.status !== 'delivered').length : k === 'debt' ? S.cars.filter(c => fin(c).remaining > 0).length : S.cars.filter(c => c.status === k).length;
+  const chips = [['all', 'الكل'], ['inshop', 'داخل الورشة'], ...STATUSES.map(s => [s.k, s.t]), ['debt', 'عليها متبقي']];
+  return `<div class="ph"><div><h1>السيارات</h1><p>ملف مستقل لكل سيارة مع مصاريفها ودفعاتها وأرباحها</p></div><button class="btn primary" data-act="new-car">${ic('plus', 18)} سيارة جديدة</button></div>
+    <div class="chips">${chips.map(([k, l]) => `<button type="button" class="chip" data-cf="${k}" aria-pressed="${UI.carF === k}">${l} <span class="n">${cnt(k)}</span></button>`).join('')}</div>
+    <div class="f"><input id="cq" type="search" placeholder="بحث في السيارات: الزبون، الهاتف، اللوحة، النوع" value="${esc(UI.carQ)}" autocomplete="off"></div>
+    <div id="carlist">${carListHtml()}</div>`;
+}
+
+/* ---------- ملف السيارة ---------- */
+function photoGrid(refId, phase) {
+  const list = (X.photosByRef.get(refId) || []).filter(p => p.phase === phase);
+  if (!list.length) return `<div class="note">لا توجد صور.</div>`;
+  return `<div class="photos">${list.map(p => `<button type="button" class="ph-i" data-photo="${p.id}" aria-label="عرض الصورة"><img alt="" src="${esc(p.thumb)}"></button>`).join('')}</div>`;
+}
+function viewCar(id) {
+  const car = X.car.get(id);
+  if (!car) return `<div class="card">${emptyBox('لم يتم العثور على السيارة', 'ربما تم حذفها.', `<button class="btn" data-go="cars">العودة إلى السيارات</button>`)}</div>`;
+  const x = fin(car), cu = X.cust.get(car.customerId) || {};
+  const pct = x.due > 0 ? Math.max(0, Math.min(100, x.paid / x.due * 100)) : 0;
+  const si = STATUSES.findIndex(s => s.k === car.status);
+  const cats = new Map(); x.exps.forEach(e => cats.set(e.category, r3((cats.get(e.category) || 0) + e.amount)));
+  const catRows = [...cats.entries()].sort((a, b) => b[1] - a[1]); const cmax = catRows.length ? catRows[0][1] : 1;
+  let h = `<div class="row sb"><button class="btn ghost sm" data-go="cars">${ic('back', 16)} السيارات</button><div class="row"><button class="btn sm" data-act="car-pdf" data-id="${id}">${ic('file', 16)} تقرير PDF</button><button class="btn sm" data-act="car-xlsx" data-id="${id}">${ic('table', 16)} Excel</button><button class="btn sm" data-act="edit-car" data-id="${id}">${ic('edit', 16)} تعديل</button><button class="btn sm danger" data-act="del-car" data-id="${id}">${ic('trash', 16)} حذف</button></div></div>
+  <div class="card" style="display:grid;gap:10px"><div class="row sb">${plateChip(car, 'xl')}${statusPill(car.status)}</div><h1 style="font:700 24px/1.3 var(--f-disp)">${esc(carTitle(car))} ${dotHtml(car)}</h1>
+    <div class="job-s" style="font-size:14px"><a href="#cust-${cu.id}" data-go="cust-${cu.id}" style="font-weight:600">${esc(cu.name || '—')}</a>${cu.phone ? ` · <span class="num">${esc(cu.phone)}</span> <button type="button" class="icon-btn" style="width:28px;height:28px" data-act="copy" data-v="${esc(cu.phone)}" aria-label="نسخ الرقم">${ic('copy', 15)}</button>` : ''}</div></div>
+  <div class="steps" role="group" aria-label="حالة السيارة">${STATUSES.map((s, i) => `<button type="button" class="step ${i < si ? 'done' : ''} ${i === si ? 'cur' : ''} st-${s.k}" data-status="${s.k}" data-id="${id}" aria-pressed="${i === si}"><i></i>${s.t}</button>`).join('')}</div>
+  <div class="card"><div class="pnl"><div class="big"><span class="label">صافي الربح من هذه السيارة</span><div class="v ${x.net > 0 ? 'pos' : x.net < 0 ? 'neg' : ''}" style="font:700 36px/1.15 var(--f-mono)">${money(x.net)}<span class="cu" style="font-size:14px">${esc(sym())}</span></div><div class="note" style="margin-top:4px">المستحق (${money(x.due)}) − المصاريف (${money(x.expenses)})</div></div>
+    <div><span class="label">المبلغ المستحق</span><div class="v">${cur(x.due)}</div></div><div><span class="label">المقبوض</span><div class="v">${cur(x.paid)}</div></div>
+    <div><span class="label">المتبقي على الزبون</span><div class="v">${cur(x.remaining, x.remaining > 0 ? 'neg' : x.remaining < 0 ? 'pos' : '')}</div></div><div><span class="label">إجمالي المصروفات</span><div class="v">${cur(x.expenses)}</div></div></div>
+    <div style="margin-top:16px;display:grid;gap:8px"><div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><div class="row sb note"><span>تم تحصيل ${Math.round(pct)}% من المستحق</span><span>الربح الفعلي حتى الآن (المقبوض − المصاريف): <span class="num ${x.cash < 0 ? 'neg' : 'pos'}">${money(x.cash)}</span> ${esc(sym())}</span></div></div></div>
+  <div class="row" style="gap:12px"><button class="btn xl" data-act="car-exp" data-id="${id}">${ic('wallet', 22)} إضافة مصروف</button><button class="btn primary xl" data-act="car-pay" data-id="${id}">${ic('receipt', 22)} تسجيل دفعة</button></div>`;
+  h += `<div class="card"><div class="card-h"><h2 class="sec">مصاريف السيارة <small>${x.exps.length} مصروف</small></h2></div>`;
+  h += x.exps.length ? `<div class="tw"><table class="t"><thead><tr><th>التاريخ</th><th>المصروف</th><th>التصنيف</th><th class="n">المبلغ</th><th>الفاتورة</th><th></th></tr></thead><tbody>${x.exps.map(e => { const ph = e.photoId ? S.photos.find(p => p.id === e.photoId) : null; return `<tr><td class="num">${fmtDate(e.date)}</td><td><b>${esc(e.name)}</b>${e.notes ? `<div class="note">${esc(e.notes)}</div>` : ''}</td><td>${esc(e.category)}</td><td class="n">${money(e.amount)}</td><td>${ph ? `<img class="thumb" src="${esc(ph.thumb)}" data-photo="${ph.id}" alt="فاتورة">` : '<span class="muted">—</span>'}</td><td class="acts"><button class="icon-btn" data-act="edit-exp" data-id="${e.id}" aria-label="تعديل">${ic('edit', 17)}</button><button class="icon-btn del" data-act="del-exp" data-id="${e.id}" aria-label="حذف">${ic('trash', 17)}</button></td></tr>`; }).join('')}</tbody><tfoot><tr><td colspan="3">إجمالي المصروفات</td><td class="n">${money(x.expenses)}</td><td colspan="2"></td></tr></tfoot></table></div>
+    ${catRows.length > 1 ? `<div class="bars" style="margin-top:16px">${catRows.map(([k, v]) => `<div class="b"><span>${esc(k)}</span><div class="bar"><i style="width:${v / cmax * 100}%"></i></div><span class="num">${money(v)}</span></div>`).join('')}</div>` : ''}` : `<div class="empty">لم تُسجَّل مصروفات بعد.<button class="btn sm" data-act="car-exp" data-id="${id}">${ic('plus', 16)} إضافة مصروف</button></div>`;
+  h += `</div><div class="card"><div class="card-h"><h2 class="sec">الدفعات <small>${x.pays.length} دفعة</small></h2></div>`;
+  h += x.pays.length ? `<div class="tw"><table class="t"><thead><tr><th>سند</th><th>التاريخ</th><th>النوع</th><th>الطريقة</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${x.pays.map(p => `<tr><td class="num">${p.no || '—'}</td><td class="num">${fmtDate(p.date)}</td><td>${esc(PTYPE[p.type] || '')}${p.notes ? `<div class="note">${esc(p.notes)}</div>` : ''}</td><td>${esc(METH[p.method] || '')}</td><td class="n">${money(p.amount)}</td><td class="acts"><button class="icon-btn" data-act="receipt" data-id="${p.id}" aria-label="سند القبض" title="سند القبض">${ic('receipt', 17)}</button><button class="icon-btn" data-act="edit-pay" data-id="${p.id}" aria-label="تعديل">${ic('edit', 17)}</button><button class="icon-btn del" data-act="del-pay" data-id="${p.id}" aria-label="حذف">${ic('trash', 17)}</button></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="4">إجمالي المقبوض</td><td class="n">${money(x.paid)}</td><td></td></tr></tfoot></table></div>` : `<div class="empty">لم تُسجَّل دفعات بعد.<button class="btn sm primary" data-act="car-pay" data-id="${id}">${ic('plus', 16)} تسجيل دفعة</button></div>`;
+  h += `</div><div class="card"><div class="card-h"><h2 class="sec">الأجرة والخصومات</h2><button class="btn sm" data-act="edit-pricing" data-id="${id}">${ic('edit', 16)} تعديل الأجرة</button></div><div class="kv">
+    ${car.lump ? `<div><span class="label">المبلغ المتفق عليه (مقطوع)</span><b class="num">${money(x.base)}</b></div>` : `<div><span class="label">أجرة السمكرة</span><b class="num">${money(r3(car.bodyFee))}</b></div><div><span class="label">أجرة الدهان</span><b class="num">${money(r3(car.paintFee))}</b></div>`}
+    <div><span class="label">أجرة الأعمال الإضافية</span><b class="num">${money(x.extra)}</b></div><div><span class="label">الخصومات</span><b class="num ${x.disc > 0 ? 'neg' : ''}">${x.disc > 0 ? '-' : ''}${money(x.disc)}</b></div><div><span class="label">المبلغ المستحق على الزبون</span><b class="num">${money(x.due)}</b></div></div></div>`;
+  h += `<div class="card"><div class="card-h"><h2 class="sec">بيانات السيارة</h2></div><div class="kv">
+    <div><span class="label">الشركة / النوع</span><b>${esc(car.make || '—')}</b></div><div><span class="label">الموديل</span><b>${esc(car.model || '—')}</b></div><div><span class="label">سنة الصنع</span><b class="num">${esc(car.year || '—')}</b></div>
+    <div><span class="label">اللون</span><b>${esc(car.color || '—')} ${dotHtml(car)}</b></div><div><span class="label">رقم الشاصي</span><b class="num">${esc(car.chassis || '—')}</b></div><div><span class="label">قراءة العداد</span><b class="num">${car.odometer ? Number(car.odometer).toLocaleString('en-US') + ' كم' : '—'}</b></div>
+    <div><span class="label">تاريخ الدخول</span><b class="num">${fmtDate(car.entryDate)}</b></div>${car.status === 'delivered' ? `<div><span class="label">تاريخ التسليم</span><b class="num">${fmtDate(car.deliveredDate)}</b></div>` : ''}</div>
+    <div style="margin-top:14px"><span class="label">وصف الأعطال والأضرار</span><p style="white-space:pre-wrap;margin-top:4px">${esc(car.damage || '—')}</p></div></div>`;
+  h += `<div class="card"><div class="card-h"><h2 class="sec">صور السيارة</h2><div class="row"><label class="btn sm">${ic('image', 16)} قبل الإصلاح<input type="file" accept="image/*" multiple hidden data-addphoto="before" data-id="${id}"></label><label class="btn sm">${ic('image', 16)} بعد الإصلاح<input type="file" accept="image/*" multiple hidden data-addphoto="after" data-id="${id}"></label></div></div>
+    <div class="label" style="margin-bottom:8px">قبل الإصلاح</div>${photoGrid(id, 'before')}<div class="label" style="margin:16px 0 8px">بعد الإصلاح</div>${photoGrid(id, 'after')}</div>`;
+  return h;
+}
+
+/* ---------- الزبائن ---------- */
+function custListHtml() {
+  const q = norm(UI.custQ).trim(), qd = latin(UI.custQ).replace(/\D/g, '');
+  let list = S.customers.slice();
+  if (q || qd) list = list.filter(c => (q && norm(c.name).includes(q)) || (qd.length >= 2 && latin(c.phone || '').replace(/\D/g, '').includes(qd)) || (q && norm(c.address || '').includes(q)));
+  list.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  if (!list.length) return `<div class="card">${emptyBox(S.customers.length ? 'لا توجد نتائج' : 'لا يوجد زبائن بعد', S.customers.length ? 'جرّب اسماً أو رقماً آخر.' : 'يُنشأ ملف الزبون تلقائياً عند استقبال سيارته، أو أضفه يدوياً.', S.customers.length ? '' : `<button class="btn primary" data-act="new-cust">${ic('plus', 18)} زبون جديد</button>`)}</div>`;
+  return `<div class="grid gauto">${list.map(custCard).join('')}</div>`;
+}
+function viewCustomers() {
+  return `<div class="ph"><div><h1>الزبائن</h1><p>ملف مستقل لكل زبون بسياراته وحسابه ومدفوعاته</p></div><button class="btn primary" data-act="new-cust">${ic('plus', 18)} زبون جديد</button></div>
+    <div class="f"><input id="cuq" type="search" placeholder="بحث باسم الزبون أو رقم الهاتف" value="${esc(UI.custQ)}" autocomplete="off"></div><div id="custlist">${custListHtml()}</div>`;
+}
+function viewCustomer(id) {
+  const cu = X.cust.get(id);
+  if (!cu) return `<div class="card">${emptyBox('لم يتم العثور على الزبون', 'ربما تم حذفه.', `<button class="btn" data-go="customers">العودة إلى الزبائن</button>`)}</div>`;
+  const cars = (X.carsByCust.get(id) || []).slice().sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+  const due = sum(cars, c => fin(c).due), paid = sum(cars, c => fin(c).paid), rem = r3(due - paid);
+  const pays = S.payments.filter(p => cars.some(c => c.id === p.carId)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+  return `<div class="row sb"><button class="btn ghost sm" data-go="customers">${ic('back', 16)} الزبائن</button><div class="row"><button class="btn sm" data-act="cust-pdf" data-id="${id}">${ic('file', 16)} كشف حساب PDF</button><button class="btn sm" data-act="cust-xlsx" data-id="${id}">${ic('table', 16)} Excel</button><button class="btn sm" data-act="edit-cust" data-id="${id}">${ic('edit', 16)} تعديل</button><button class="btn sm danger" data-act="del-cust" data-id="${id}">${ic('trash', 16)} حذف</button></div></div>
+  <div class="card"><h1 style="font:700 26px/1.3 var(--f-disp)">${esc(cu.name)}</h1><div class="kv" style="margin-top:12px"><div><span class="label">الهاتف</span><b class="num">${esc(cu.phone || '—')}</b>${cu.phone ? ` <button type="button" class="icon-btn" style="width:28px;height:28px" data-act="copy" data-v="${esc(cu.phone)}" aria-label="نسخ الرقم">${ic('copy', 15)}</button>` : ''}</div><div><span class="label">العنوان</span><b>${esc(cu.address || '—')}</b></div><div><span class="label">ملاحظات</span><b style="white-space:pre-wrap">${esc(cu.notes || '—')}</b></div></div></div>
+  <div class="grid g4">${tile('عدد السيارات', plain(cars.length))}${tile('إجمالي المستحق', cur(due))}${tile('إجمالي المقبوض', cur(paid))}${tile('المتبقي على الزبون', cur(rem, rem > 0 ? 'neg' : ''))}</div>
+  <div class="row sb"><h2 class="sec">سيارات الزبون <small>${cars.length}</small></h2><button class="btn primary sm" data-act="cust-car" data-id="${id}">${ic('plus', 16)} سيارة جديدة لهذا الزبون</button></div>
+  ${cars.length ? `<div class="grid gauto">${cars.map(jobCard).join('')}</div>` : `<div class="card">${emptyBox('لا توجد سيارات لهذا الزبون', 'أضف سيارة لفتح ملفها.')}</div>`}
+  <h2 class="sec">سجل المدفوعات <small>${pays.length}</small></h2>
+  ${pays.length ? `<div class="tw"><table class="t"><thead><tr><th>سند</th><th>التاريخ</th><th>السيارة</th><th>الطريقة</th><th class="n">المبلغ</th><th></th></tr></thead><tbody>${pays.map(p => { const c = X.car.get(p.carId); return `<tr><td class="num">${p.no || '—'}</td><td class="num">${fmtDate(p.date)}</td><td>${c ? esc(carTitle(c)) + (c.plate ? ' · <span class="num">' + esc(c.plate) + '</span>' : '') : '—'}</td><td>${esc(METH[p.method] || '')}</td><td class="n">${money(p.amount)}</td><td class="acts"><button class="icon-btn" data-act="receipt" data-id="${p.id}" aria-label="سند القبض">${ic('receipt', 17)}</button></td></tr>`; }).join('')}</tbody><tfoot><tr><td colspan="4">الإجمالي</td><td class="n">${money(paid)}</td><td></td></tr></tfoot></table></div>` : `<div class="card"><div class="empty">لا توجد مدفوعات مسجلة.</div></div>`}`;
+}
+
+/* ---------- التقارير ---------- */
+function setRange(k) {
+  const d = new Date(), y = d.getFullYear(), m = pad(d.getMonth() + 1);
+  if (k === 'today') UI.repFrom = UI.repTo = todayISO();
+  else if (k === 'month') { UI.repFrom = `${y}-${m}-01`; UI.repTo = `${y}-${m}-31`; }
+  else if (k === 'year') { UI.repFrom = `${y}-01-01`; UI.repTo = `${y}-12-31`; }
+  else { UI.repFrom = UI.repTo = ''; }
+}
+function rangeKey() {
+  const d = new Date(), y = d.getFullYear(), m = pad(d.getMonth() + 1), f = UI.repFrom, t = UI.repTo;
+  if (!f && !t) return 'all'; if (f === todayISO() && t === f) return 'today'; if (f === `${y}-${m}-01` && t === `${y}-${m}-31`) return 'month'; if (f === `${y}-01-01` && t === `${y}-12-31`) return 'year'; return 'custom';
+}
+function repBodyHtml() {
+  const rep = buildReport(UI.rep);
+  return `<div class="row"><button class="btn primary sm" data-act="rep-pdf">${ic('file', 16)} تصدير PDF</button><button class="btn sm" data-act="rep-xlsx">${ic('table', 16)} تصدير Excel</button></div>${repHtml(rep)}`;
+}
+function viewReports() {
+  const rk = rangeKey();
+  const dated = UI.rep !== 'debts';
+  let h = `<div class="ph"><div><h1>التقارير والمحاسبة</h1><p>كل تقرير قابل للتصدير إلى PDF وExcel</p></div></div>
+  <div class="rep-tabs" role="tablist">${REPORTS.map(r => `<button type="button" class="chip" role="tab" data-rep="${r.k}" aria-pressed="${UI.rep === r.k}">${r.t}</button>`).join('')}</div>`;
+  h += `<div class="card"><div class="rf">`;
+  if (dated) {
+    h += `<div class="chips" style="flex:none">${[['today', 'اليوم'], ['month', 'هذا الشهر'], ['year', 'هذه السنة'], ['all', 'الكل']].map(([k, l]) => `<button type="button" class="chip" data-range="${k}" aria-pressed="${rk === k}">${l}</button>`).join('')}</div>
+    <div class="f"><label for="rf-from">من تاريخ</label><input id="rf-from" type="date" value="${esc(UI.repFrom)}"></div><div class="f"><label for="rf-to">إلى تاريخ</label><input id="rf-to" type="date" value="${esc(UI.repTo)}"></div>`;
+  } else h += `<span class="note">تقرير الديون يعرض الوضع الحالي لكل الزبائن ولا يتأثر بالتاريخ.</span>`;
+  if (UI.rep === 'profit') h += `<div class="f"><label for="rf-status">حالة السيارة</label>${selHtml('rf-status', [{ k: 'all', t: 'كل الحالات' }, ...STATUSES], UI.repStatus)}</div>`;
+  if (UI.rep === 'expenses') h += `<div class="f"><label for="rf-car">السيارة</label><select id="rf-car"><option value="all"${UI.repCar === 'all' ? ' selected' : ''}>كل المصروفات</option><option value="_general"${UI.repCar === '_general' ? ' selected' : ''}>المصاريف العامة فقط</option>${S.cars.map(c => `<option value="${c.id}"${UI.repCar === c.id ? ' selected' : ''}>${esc(carLabel(c))}</option>`).join('')}</select></div>`;
+  if (UI.rep === 'periodic') h += `<div class="seg" role="group" aria-label="نوع التقرير">${[['day', 'يومي'], ['month', 'شهري'], ['year', 'سنوي']].map(([k, l]) => `<button type="button" data-repper="${k}" aria-pressed="${UI.repPer === k}">${l}</button>`).join('')}</div>`;
+  h += `</div></div><div id="repbody" class="grid" style="gap:14px">${repBodyHtml()}</div>`;
+  return h;
+}
+
+/* ---------- الإعدادات ---------- */
+function fmtDT(iso) { if (!iso) return 'لم يتم بعد'; const d = new Date(iso); return fmtDate(iso.slice(0, 10)) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function viewConfig() {
+  const s = S.settings; const cc = CURRENCIES.find(c => c.c === s.currency) || CURRENCIES[0];
+  const stTxt = UI.storage === 'ok' ? `مفعّل (قاعدة بيانات داخل المتصفح)${UI.persisted ? ' — محمي من الحذف التلقائي' : ''}` : 'غير متاح في هذا العرض';
+  return `<div class="ph"><div><h1>الإعدادات والنسخ الاحتياطي</h1><p>بيانات الورشة، العملة، حفظ البيانات واستعادتها</p></div></div>
+  <div class="card"><div class="card-h"><h2 class="sec">بيانات الورشة <small>تظهر في سند القبض والتقارير</small></h2></div>
+    <form data-form="shop" novalidate><div class="fg">${fld('sh-name', 'اسم الورشة', inp('sh-name', s.workshop, 'placeholder="مثال: ورشة النخبة للسمكرة والدهان"'))}${fld('sh-phone', 'هاتف الورشة', inp('sh-phone', s.phone, 'class="num" inputmode="tel"'))}${fld('sh-addr', 'العنوان', inp('sh-addr', s.address), { cls: 'full' })}</div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" type="submit">${ic('check', 18)} حفظ بيانات الورشة</button></div></form></div>
+  <div class="card"><div class="card-h"><h2 class="sec">العملة</h2></div>
+    <form data-form="currency" novalidate><div class="fg">${fld('cc-cur', 'العملة', selHtml('cc-cur', CURRENCIES.map(c => ({ k: c.c, t: `${c.n}${c.s ? ' (' + c.s + ')' : ''}` })), cc.c))}${fld('cc-sym', 'رمز العملة المعروض', inp('cc-sym', s.symbol))}${fld('cc-dec', 'عدد الخانات العشرية', selHtml('cc-dec', [0, 1, 2, 3].map(n => ({ k: String(n), t: n === 3 ? '3 (فلس)' : String(n) })), String(s.decimals)))}</div>
+    <p class="note" style="margin-top:8px">تغيير العملة يغيّر الرمز وطريقة العرض فقط ولا يحوّل المبالغ المسجلة.</p><div class="row" style="margin-top:12px"><button class="btn primary" type="submit">${ic('check', 18)} حفظ العملة</button></div></form></div>
+  <div class="card"><div class="card-h"><h2 class="sec">النسخ الاحتياطي واستعادة البيانات</h2></div>
+    <div class="kv" style="margin-bottom:14px"><div><span class="label">حالة التخزين الدائم</span><b>${stTxt}</b></div><div><span class="label">آخر نسخة احتياطية</span><b>${fmtDT(s.lastBackup)}</b></div><div><span class="label">المسجّل حالياً</span><b>${S.cars.length} سيارة · ${S.customers.length} زبون · ${S.payments.length} دفعة · ${S.expenses.length} مصروف · ${S.photos.length} صورة</b></div></div>
+    <div class="row"><button class="btn primary" data-act="backup">${ic('download', 18)} نسخة احتياطية كاملة (مع الصور)</button><label class="btn">${ic('upload', 18)} استعادة من ملف نسخة احتياطية<input type="file" accept=".json,application/json" hidden id="restore-file"></label><button class="btn" data-act="xlsx-all">${ic('table', 18)} تصدير كل البيانات إلى Excel</button></div>
+    <p class="note" style="margin-top:10px">تُحفظ البيانات داخل متصفح هذا الجهاز. الجهاز الآخر لا يرى بياناتك إلا إذا نقلت إليه ملف النسخة الاحتياطية. احتفظ بنسخة حديثة في مكان آمن (واتساب لنفسك أو البريد).</p></div>
+  <div class="card cloud"><div class="card-h"><h2 class="sec">${ic('cloud', 20)} نسخة سحابية إضافية <small>بدون الصور</small></h2></div>
+    <p class="note">تحفظ بيانات الزبائن والسيارات والمصروفات والدفعات في قاعدة بيانات التطبيق على claude.ai، وتفيد إن فقدت بيانات الجهاز أو أردت فتح البيانات على جهاز آخر. لا يصل إليها إلا أنت (أو من تمنحه صلاحية تحرير). آخر حفظ سحابي: <b>${fmtDT(s.cloudAt)}</b></p>
+    <label class="sw"><input type="checkbox" id="cloud-auto" ${s.cloudAuto ? 'checked' : ''}> حفظ سحابي تلقائي بعد كل تعديل</label>
+    <div class="row"><button class="btn" data-act="cloud-save">${ic('cloud', 18)} حفظ في السحابة الآن</button><button class="btn" data-act="cloud-restore">${ic('download', 18)} استعادة من السحابة</button></div></div>
+  <div class="card"><div class="card-h"><h2 class="sec">حذف كل البيانات</h2></div><p class="note" style="margin-bottom:12px">يمحو كل الزبائن والسيارات والمصروفات والدفعات والصور من هذا الجهاز. خذ نسخة احتياطية قبل ذلك.</p><button class="btn danger" data-act="wipe">${ic('trash', 18)} حذف كل البيانات</button></div>`;
+}
+
+/* ---------- التوجيه والعرض ---------- */
+const NAV = [['dashboard', 'لوحة التحكم', 'home'], ['cars', 'السيارات', 'car'], ['customers', 'الزبائن', 'users'], ['reports', 'التقارير', 'chart'], ['config', 'الإعدادات', 'sliders']];
+function parseRoute() {
+  const h = (location.hash || '#dashboard').slice(1) || 'dashboard';
+  if (h.startsWith('car-')) return { name: 'car', id: h.slice(4), h, nav: 'cars' };
+  if (h.startsWith('cust-')) return { name: 'cust', id: h.slice(5), h, nav: 'customers' };
+  const ok = NAV.some(n => n[0] === h); return ok ? { name: h, h, nav: h } : { name: 'dashboard', h: 'dashboard', nav: 'dashboard' };
+}
+function go(h) {
+  if (location.hash.slice(1) === h) { render(); return; }
+  location.hash = h;
+  setTimeout(() => { if (UI.route !== h) render(); }, 60);
+}
+function renderNav(active) {
+  $('#nav-side').innerHTML = NAV.map(([k, l, i]) => `<a href="#${k}" data-go="${k}" ${k === active ? 'aria-current="page"' : ''}>${ic(i, 20)} ${l}</a>`).join('');
+  const t = NAV.filter(n => n[0] !== 'config');
+  const link = ([k, l, i]) => `<a href="#${k}" data-go="${k}" ${k === active ? 'aria-current="page"' : ''}>${ic(i, 22)}<span>${l.replace('لوحة التحكم', 'الرئيسية')}</span></a>`;
+  $('#nav-tabs').innerHTML = link(t[0]) + link(t[1]) + `<button type="button" class="tab-add" data-act="quick" aria-label="إضافة سريعة"><span class="plus">${ic('plus', 26)}</span><span>إضافة</span></button>` + link(t[2]) + link(t[3]);
+  const cl = $('#cfg-link'); if (cl) cl.setAttribute('aria-current', active === 'config' ? 'page' : 'false');
+}
+function render() {
+  const r = parseRoute(); const view = $('#view'); if (!view) return;
+  const changed = UI.route !== r.h; UI.route = r.h;
+  const fnMap = { dashboard: viewDashboard, cars: viewCars, customers: viewCustomers, reports: viewReports, config: viewConfig, car: () => viewCar(r.id), cust: () => viewCustomer(r.id) };
+  let html; try { html = fnMap[r.name](); } catch (e) { console.error(e); html = `<div class="card"><div class="empty"><b>حدث خطأ أثناء عرض الصفحة</b><span>${esc(e && e.message)}</span></div></div>`; }
+  view.innerHTML = html;
+  renderNav(r.nav);
+  $('#side-info').textContent = S.settings.workshop || '';
+  if (r.name === 'dashboard') drawChart();
+  if (changed) window.scrollTo(0, 0);
+}
+
+/* =============================================================
+   الأحداث والتشغيل
+   ============================================================= */
+hooks.after = () => { render(); cloudSchedule(); };
+const fromModal = el => { if (el.closest('.ov')) { const ov = el.closest('.ov'); const m = MODALS.find(x => x.el === ov); if (m) m.close(); } };
+async function deleteCarCascade(id) {
+  const exps = S.expenses.filter(e => e.carId === id), pays = S.payments.filter(p => p.carId === id);
+  const phs = S.photos.filter(p => p.refId === id || exps.some(e => e.id === p.refId));
+  for (const e of exps) { try { await IDB.del('expenses', e.id); } catch (x) { } }
+  for (const p of pays) { try { await IDB.del('payments', p.id); } catch (x) { } }
+  for (const p of phs) { MEMFULL.delete(p.id); try { await IDB.del('photos', p.id); await IDB.del('photoData', p.id); } catch (x) { } }
+  try { await IDB.del('cars', id); } catch (x) { }
+  S.expenses = S.expenses.filter(e => e.carId !== id); S.payments = S.payments.filter(p => p.carId !== id);
+  S.photos = S.photos.filter(p => !phs.includes(p)); S.cars = S.cars.filter(c => c.id !== id);
+  reindex(); hooks.after();
+}
+const askDel = (title, msg) => confirmBox({ title, msg, ok: 'حذف', danger: true });
+
+ACT.close = el => fromModal(el);
+ACT.quick = () => openQuick();
+ACT['new-car'] = el => { fromModal(el); openCarForm(); };
+ACT['new-exp'] = el => { fromModal(el); openExpenseForm(); };
+ACT['new-pay'] = el => { fromModal(el); openPaymentForm(); };
+ACT['new-cust'] = el => { fromModal(el); openCustomerForm(); };
+ACT['edit-car'] = el => openCarForm(el.dataset.id);
+ACT['del-car'] = async el => {
+  const c = X.car.get(el.dataset.id); if (!c) return; const x = fin(c);
+  if (!await askDel('حذف ملف السيارة', `سيتم حذف ملف السيارة ${carTitle(c)} مع ${x.exps.length} مصروف و${x.pays.length} دفعة وكل صورها نهائياً. هل أنت متأكد؟`)) return;
+  await deleteCarCascade(c.id); toast('تم حذف ملف السيارة'); go('cars');
+};
+ACT['car-exp'] = el => openExpenseForm({ carId: el.dataset.id });
+ACT['car-pay'] = el => openPaymentForm({ carId: el.dataset.id });
+ACT['edit-exp'] = el => openExpenseForm({ id: el.dataset.id });
+ACT['del-exp'] = async el => {
+  const e = S.expenses.find(x => x.id === el.dataset.id); if (!e) return;
+  if (!await askDel('حذف المصروف', `حذف المصروف «${e.name}» بمبلغ ${money(e.amount)} ${sym()}؟ ستتحدث أرباح السيارة تلقائياً.`)) return;
+  if (e.photoId) await deletePhoto(e.photoId); await remove('expenses', e.id); toast('تم حذف المصروف');
+};
+ACT['edit-pay'] = el => openPaymentForm({ id: el.dataset.id });
+ACT['del-pay'] = async el => {
+  const p = S.payments.find(x => x.id === el.dataset.id); if (!p) return;
+  if (!await askDel('حذف الدفعة', `حذف الدفعة رقم ${p.no || ''} بمبلغ ${money(p.amount)} ${sym()}؟ سيزداد المتبقي على الزبون.`)) return;
+  await remove('payments', p.id); toast('تم حذف الدفعة');
+};
+ACT.receipt = el => openReceipt(el.dataset.id);
+ACT['edit-pricing'] = el => openPricingForm(el.dataset.id);
+ACT['edit-cust'] = el => openCustomerForm(el.dataset.id);
+ACT['del-cust'] = async el => {
+  const cu = X.cust.get(el.dataset.id); if (!cu) return;
+  if ((X.carsByCust.get(cu.id) || []).length) return toast('لا يمكن حذف زبون لديه سيارات. احذف ملفات سياراته أولاً.', 'err');
+  if (!await askDel('حذف الزبون', `حذف الزبون «${cu.name}» نهائياً؟`)) return;
+  await remove('customers', cu.id); toast('تم حذف الزبون'); go('customers');
+};
+ACT['cust-car'] = el => openCarForm(null, el.dataset.id);
+ACT['car-pdf'] = el => { const c = X.car.get(el.dataset.id); if (c) exportReportPdf(buildCarReport(c), `تقرير-${c.plate || carTitle(c)}`); };
+ACT['car-xlsx'] = el => { const c = X.car.get(el.dataset.id); if (c) exportReportXlsx(buildCarReport(c), `تقرير-${c.plate || carTitle(c)}`); };
+ACT['cust-pdf'] = el => { const c = X.cust.get(el.dataset.id); if (c) exportReportPdf(buildCustomerReport(c), `كشف-حساب-${c.name}`); };
+ACT['cust-xlsx'] = el => { const c = X.cust.get(el.dataset.id); if (c) exportReportXlsx(buildCustomerReport(c), `كشف-حساب-${c.name}`); };
+ACT['rep-pdf'] = () => { const r = buildReport(UI.rep); exportReportPdf(r, r.title); };
+ACT['rep-xlsx'] = () => { const r = buildReport(UI.rep); exportReportXlsx(r, r.title); };
+ACT.backup = () => doBackup();
+ACT['xlsx-all'] = () => exportReportXlsx(buildAllDataReports(), 'كل-بيانات-الورشة');
+ACT['chart-table'] = () => { UI.chartTable = !UI.chartTable; render(); };
+ACT.copy = async el => { try { await navigator.clipboard.writeText(el.dataset.v); toast('تم النسخ'); } catch (e) { prompt0(el.dataset.v); } };
+ACT['cloud-save'] = async () => { try { toast('جاري الحفظ في السحابة…'); await cloudSave(); toast('تم الحفظ في السحابة'); render(); } catch (e) { toast('تعذر الحفظ السحابي: ' + ((e && (e.message || e.code)) || ''), 'err'); } };
+ACT['cloud-restore'] = async () => {
+  try {
+    const o = await cloudRestore();
+    if (!await confirmBox({ title: 'استعادة من السحابة', msg: `سيتم استبدال بيانات هذا الجهاز بالنسخة السحابية (${o.cars.length} سيارة، ${o.customers.length} زبون). الصور المحفوظة على هذا الجهاز تبقى كما هي. هل تريد المتابعة؟`, ok: 'استبدال واستعادة', danger: true })) return;
+    await applyBackup(o, true); toast('تمت الاستعادة من السحابة'); go('dashboard');
+  } catch (e) { toast('تعذرت الاستعادة: ' + ((e && (e.message || e.code)) || ''), 'err'); }
+};
+ACT.wipe = () => {
+  const m = openModal({
+    title: 'حذف كل البيانات', body: `<p style="line-height:1.8">سيتم حذف كل الزبائن والسيارات والمصروفات والدفعات والصور من هذا الجهاز نهائياً. للتأكيد اكتب كلمة <b>حذف</b> في الحقل التالي.</p><div class="f"><input id="wipe-in" autocomplete="off" placeholder="حذف"></div><div class="sh-f"><button type="button" class="btn danger" id="wipe-go" disabled>حذف كل شيء</button><button type="button" class="btn" data-act="close">إلغاء</button></div>`
+  });
+  const i = $('#wipe-in', m.el), b = $('#wipe-go', m.el);
+  i.addEventListener('input', () => { b.disabled = i.value.trim() !== 'حذف'; });
+  b.onclick = async () => {
+    for (const s of ['customers', 'cars', 'expenses', 'payments', 'photos', 'photoData']) { try { await IDB.clear(s); } catch (e) { } }
+    S.customers = []; S.cars = []; S.expenses = []; S.payments = []; S.photos = []; MEMFULL.clear(); reindex(); m.close(); toast('تم حذف كل البيانات'); go('dashboard'); render();
+  };
+};
+
+FORMS.shop = async form => {
+  Object.assign(S.settings, { workshop: val(form, 'sh-name'), phone: latin(val(form, 'sh-phone')), address: val(form, 'sh-addr') });
+  await saveSettings(); toast('تم حفظ بيانات الورشة');
+};
+FORMS.currency = async form => {
+  const code = val(form, 'cc-cur'); const preset = CURRENCIES.find(c => c.c === code) || CURRENCIES[0];
+  Object.assign(S.settings, { currency: code, symbol: val(form, 'cc-sym') || preset.s || code, decimals: Math.max(0, Math.min(3, parseInt(val(form, 'cc-dec'), 10) || 0)) });
+  await saveSettings(); toast('تم حفظ العملة');
+};
+
+/* التقاط الأحداث */
+document.addEventListener('click', e => {
+  const t = e.target; let el;
+  if ((el = t.closest('[data-act]'))) { e.preventDefault(); const f = ACT[el.dataset.act]; if (f) f(el, e); return; }
+  if ((el = t.closest('[data-photo]'))) { e.preventDefault(); openPhoto(el.dataset.photo); return; }
+  if ((el = t.closest('[data-cf]'))) { e.preventDefault(); UI.carF = el.dataset.cf; go('cars'); return; }
+  if ((el = t.closest('[data-status]'))) {
+    const c = X.car.get(el.dataset.id); const k = el.dataset.status; if (!c || c.status === k) return;
+    const n = { ...c, status: k, deliveredDate: k === 'delivered' ? todayISO() : '' };
+    persist('cars', n).then(() => { const r = fin(n).remaining; toast(`الحالة: ${ST[k]}` + (k === 'delivered' && r > 0 ? ` — بقي على الزبون ${money(r)} ${sym()}` : '')); });
+    return;
+  }
+  if ((el = t.closest('[data-per]'))) { UI.dashPeriod = el.dataset.per; render(); return; }
+  if ((el = t.closest('[data-cn]'))) { UI.chartN = +el.dataset.cn; render(); return; }
+  if ((el = t.closest('[data-rep]'))) { UI.rep = el.dataset.rep; render(); return; }
+  if ((el = t.closest('[data-range]'))) { setRange(el.dataset.range); render(); return; }
+  if ((el = t.closest('[data-repper]'))) { UI.repPer = el.dataset.repper; render(); return; }
+  if ((el = t.closest('[data-go]'))) { e.preventDefault(); go(el.dataset.go); return; }
+  if (!t.closest('.search')) hideSearch();
+});
+document.addEventListener('submit', async e => {
+  const f = e.target.closest('form[data-form]'); if (!f) return; e.preventDefault();
+  const h = FORMS[f.dataset.form]; if (h) { try { await h(f, e); } catch (err) { console.error(err); toast('حدث خطأ: ' + (err && err.message || err), 'err'); } }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'cq') { UI.carQ = t.value; $('#carlist').innerHTML = carListHtml(); }
+  else if (t.id === 'cuq') { UI.custQ = t.value; $('#custlist').innerHTML = custListHtml(); }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'rf-from') { UI.repFrom = t.value; render(); }
+  else if (t.id === 'rf-to') { UI.repTo = t.value; render(); }
+  else if (t.id === 'rf-status') { UI.repStatus = t.value; render(); }
+  else if (t.id === 'rf-car') { UI.repCar = t.value; render(); }
+  else if (t.id === 'restore-file') { const f = t.files[0]; t.value = ''; if (f) restoreFromFile(f); }
+  else if (t.id === 'cc-cur') { const p = CURRENCIES.find(c => c.c === t.value); if (p) { const f = t.closest('form'); f.querySelector('#cc-sym').value = p.s; f.querySelector('#cc-dec').value = String(p.d); } }
+  else if (t.id === 'cloud-auto') {
+    S.settings.cloudAuto = t.checked; await saveSettings();
+    if (t.checked) { try { await cloudSave(); toast('تم تفعيل الحفظ السحابي التلقائي'); } catch (err) { S.settings.cloudAuto = false; await saveSettings(); toast('تعذر تفعيل الحفظ السحابي: ' + ((err && (err.message || err.code)) || ''), 'err'); } }
+  } else if (t.dataset && t.dataset.addphoto) {
+    const files = t.files, id = t.dataset.id, ph = t.dataset.addphoto;
+    if (files && files.length) { toast('جاري معالجة الصور…'); const r = await addPhotos('car', id, files, ph); if (r.length) toast(`تمت إضافة ${r.length} صورة`); }
+    t.value = '';
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (MODALS.length) closeTop(); else hideSearch(); } });
+window.addEventListener('hashchange', () => render());
+
+/* البحث العام */
+function hideSearch() { const r = $('#sres'); if (r) r.classList.add('hide'); }
+function runSearch() {
+  const q = $('#gs').value, box = $('#sres');
+  const nq = norm(q).trim(), qp = normPlate(q), qd = latin(q).replace(/\D/g, '');
+  if (!nq && !qp) return hideSearch();
+  const phoneOf = id => latin((X.cust.get(id) || {}).phone || '').replace(/\D/g, '');
+  const cars = S.cars.filter(c => (qp && normPlate(c.plate || '').includes(qp)) || norm([c.make, c.model, c.color, custName(c.customerId)].join(' ')).includes(nq) || (qd.length >= 3 && phoneOf(c.customerId).includes(qd))).slice(0, 8);
+  const custs = S.customers.filter(c => norm(c.name).includes(nq) || (qd.length >= 3 && phoneOf(c.id).includes(qd))).slice(0, 6);
+  let h = '';
+  if (cars.length) h += `<h5>السيارات</h5>` + cars.map(c => `<button type="button" data-go="car-${c.id}" data-sr>${plateChip(c)}<span class="grow"><b>${esc(carTitle(c))}</b><br><span class="muted">${esc(custName(c.customerId))}</span></span>${statusPill(c.status)}</button>`).join('');
+  if (custs.length) h += `<h5>الزبائن</h5>` + custs.map(c => `<button type="button" data-go="cust-${c.id}" data-sr>${ic('user', 18)}<span class="grow"><b>${esc(c.name)}</b></span><span class="num muted">${esc(c.phone || '')}</span></button>`).join('');
+  box.innerHTML = h || `<div class="empty" style="padding:18px">لا توجد نتائج مطابقة</div>`; box.classList.remove('hide');
+}
+$('#gs').addEventListener('input', runSearch);
+$('#gs').addEventListener('focus', () => { if ($('#gs').value) runSearch(); });
+$('#gs').addEventListener('keydown', e => { if (e.key === 'Enter') { const b = $('#sres [data-sr]'); if (b) { b.click(); } } });
+$('#sres').addEventListener('click', e => { if (e.target.closest('[data-sr]')) { $('#gs').value = ''; hideSearch(); } });
+
+/* التشغيل */
+let _rz; window.addEventListener('resize', () => { clearTimeout(_rz); _rz = setTimeout(() => { if (UI.route === 'dashboard') drawChart(); }, 150); });
+(async function boot() {
+  $('#brand-mark').innerHTML = ic('logo', 26); $('#brand-mark2').innerHTML = ic('logo', 20);
+  $('#search-ic').innerHTML = ic('search', 18); $('#cfg-link').innerHTML = ic('sliders', 22);
+  $('#side-add').innerHTML = ic('plus', 18) + ' إضافة سريعة';
+  reindex();
+  render();
+  await loadAll();
+  render();
+})();
+if (window.__TEST__) window.__ws = { S, X, UI, fin, totals, buildReport, buildCarReport, buildCustomerReport, buildAllDataReports, buildPeriodicReport, renderReportPages, canvasesToPdf, buildXlsx, drawReceipt, addPayment, persist, parseNum, money, render, go, periodStats, backupObject, applyBackup, validBackup, setRange, addPhotos, openReceipt };
+})();
+</script>
+
+</body></html>
